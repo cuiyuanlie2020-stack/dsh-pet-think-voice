@@ -89,6 +89,13 @@ for (const [name, { words }] of Object.entries(TRIGGER_LEXICON)) {
   if (live.length) console.log('    有效：' + live.map(([w, n]) => `${w}×${n}`).join(' · '));
   if (dead.length) console.log('    ❌ 零命中：' + dead.join(' · '));
 }
+// ⚠️ 读这一段时必须知道：**本脚本的语料是 DSH 派生的约 2k 中文片段**（p0/out/corpus-zh.jsonl）。
+//    「长尾桶」（如「手滑·坦白」，词在大语料上 DF 只有个位数）在这里**天然为 0**，
+//    这不代表词表无效，也不代表它是僵尸词 —— 判据要用大语料：
+//      <node> p0/polish-probe.mjs      # WB 23 万片段，含逐词归因
+//      <node> p0/emotion-probe.mjs --show <词>
+console.log('\n  ℹ️ 注：本脚本语料为 DSH 派生小样本（约 2k 片段）；长尾桶在此为 0 属预期，'
+  + '判据请用 p0/polish-probe.mjs（WB 大语料）。');
 
 // ── 3. 分数分布与通过率 ─────────────────────────────────────────────
 const scores = fragments.map((f) => scoreSync(f).score);
