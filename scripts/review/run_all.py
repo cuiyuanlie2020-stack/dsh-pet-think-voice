@@ -274,17 +274,35 @@ def s5_tests():
         + sorted(REPO.glob("lib/**/*.test.mjs"))
     if not candidates:
         rec("S5", "单元测试", "SKIP",
-            "lib/ 下没有任何测试文件 —— 实现代码为 0 行（P1 为骨架阶段）。"
-            "P2-1 产出 lib/core/thinking-extractor 时会同时落地第一批单测")
+            "lib/ 下没有任何测试文件 —— 何时会有：每落地一个领域模块就同批产出它的单测。"
+            "（lib/core 的验收判据是：单独拷到空目录后 `node --test` 全绿）")
         return
-    if NODE and any(c.suffix in (".js", ".mjs") for c in candidates):
-        rc, out, err = run([NODE, "--test"], cwd=REPO, timeout=300)
+
+    # ⚠️ 必须**显式传入候选文件**，不能在仓库根裸跑 `node --test`。
+    #    裸跑会递归扫进 `vendor/`（上游只读参考，不入库），其自带的浏览器测试
+    #    需要浏览器环境、必然失败 —— 那等于把**第三方测试**混进本项目的验收判据。
+    js = [c for c in candidates if c.suffix in (".js", ".mjs")]
+    if NODE and js:
+        rc, out, err = run([NODE, "--test", *[str(c) for c in js]], cwd=REPO, timeout=300)
+        rec("S5", "node --test", "PASS" if rc == 0 else "FAIL",
+            f"{len(js)} 个测试文件 | {_node_test_summary(out, err)}")
+
+    py = [c for c in candidates if c.suffix == ".py"]
+    if PY_BENCH and py:
+        rc, out, err = run([PY_BENCH, "-m", "pytest", "-q", *[str(c) for c in py]],
+                           cwd=REPO, timeout=300)
         tail = (out or err).strip().splitlines()[-1:] or [""]
-        rec("S5", "node --test", "PASS" if rc == 0 else "FAIL", f"{len(candidates)} 个测试文件 | {tail[0]}")
-    if PY_BENCH and any(c.suffix == ".py" for c in candidates):
-        rc, out, err = run([PY_BENCH, "-m", "pytest", "-q"], cwd=REPO, timeout=300)
-        tail = (out or err).strip().splitlines()[-1:] or [""]
-        rec("S5", "pytest", "PASS" if rc == 0 else "FAIL", tail[0])
+        rec("S5", "pytest", "PASS" if rc == 0 else "FAIL", f"{len(py)} 个测试文件 | {tail[0]}")
+
+
+def _node_test_summary(out, err):
+    """从 node --test 输出里挑计数行，比「最后一行」信息量大（最后一行是 duration）。"""
+    keys = ("# tests", "# pass", "# fail", "# skipped")
+    parts = [l.strip().lstrip("#").strip()
+             for l in (out or "").splitlines() if l.strip().startswith(keys)]
+    if parts:
+        return " / ".join(parts)
+    return ((out or err or "").strip().splitlines() or [""])[-1]
 
 
 # ═══════════════ R-A 资源闸：host 半区常驻（DESIGN 7.1）═══════════════
