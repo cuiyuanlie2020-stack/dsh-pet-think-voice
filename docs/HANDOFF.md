@@ -896,6 +896,34 @@ react），所以 MIN/MAX 在 client.js 照抄一份、两边注释互指 ——
 **教训**：「路由注册多份」这个说法在文档里挂了很久，**推翻它靠的是读 `app.asar` + 真机数次数，
 不是靠推断**。查"两边对不上"的失配，**先取证再下结论**。
 
+#### 7.10.3b ⚠️ 续（同日）：上游那一半 —— 摸鱼连环存盘造成空发
+
+上面那条只修了**最下游的一跳**（`writeSettings` 按内容判重 ⇒ 不再写盘、`rev` 稳住）。
+给用户起服务体验时日志**又刷屏**，说明前端仍每 1.4 秒发一次空 POST。
+用 **`hook window.fetch` 抓调用栈**定案（10 秒出结果，比读代码猜快得多），10 次全是同一条：
+
+```
+persistShared ← saveOutfit ← applyLabel ← chooseSlotOption ← fire
+```
+
+**真因**：`saveOutfit` 的两个调用点都在 `chooseSlotOption` 里，而它内部的 `applyLabel`
+是**循环**调用的 —— 换一个姿势要连带处理「配对」与「前提」（换「喵喵手」要点亮
+「猫猫贴纸」、换「自拍」要先补「掏出手机」）⇒ **一次摸鱼连着调它 5~8 次**，
+每次都发一条 POST，body 全是一模一样的 `{"outfit":{}}`（这台宠物一个装扮槽都没选）。
+
+⇒ **两半合起来才解释得通"rev 5 分钟涨 76"**：摸鱼平均 19 秒一次 × 每次约 5 次 × 300 秒 ≈ 80 ✅
+
+**修**（`lib/client.js`，分支 `fix/outfit-save-storm`）：`saveOutfit` 加内容签名比对，
+且签名**必须存 `useRef`** —— 组件每渲染一次，函数体里的 `let` 都会重新初始化，
+用普通变量做记忆等于**恒失效**（"看着加了其实没生效"的守卫，本项目最警惕的那一类）。
+
+**真机验证**（8131，**同时**确认摸鱼真的发生，避免"没摸鱼所以没发"的假绿）：
+32 秒内 `postCount = 1`（首次建立签名那次）、`fidgetFired = 2`；
+对照修复前 15 秒 10 次 ⇒ 32 秒约 21 次 ⇒ **降约 95%**。
+
+⚠️ **教训（已进项目 MEMORY）**：上一轮拿到"`rev` 稳住了"就宣布"根治"——其实修的是末端。
+判断"根治"要看**整条链**（谁在发 → 发什么 → 收下怎么处理），**不能只看末端症状消失**。
+
 ### 7.10.4 用户拍板（2026-10-11）
 
 | # | 决议 |
@@ -911,6 +939,7 @@ react），所以 MIN/MAX 在 client.js 照抄一份、两边注释互指 ——
 | `.workbuddy/tmp/cdp-probe.mjs` | 无头 Edge + CDP 跑页面表达式的**零安装**真机验证工具（Node 24 自带全局 `WebSocket`，不必装 playwright）。用法 `PAGE_URL=… EXPR=… WAIT_MS=… node cdp-probe.mjs` |
 | `p0/asar.js list/cat/grep <asar>` | 读 DSH 内部实现的静态取证法（`list` 支持 `DEPTH` 环境变量控制聚合深度） |
 | `__dshLive2dPet.flashSpeak(emotion, holdMs)` | 朗读表情的**秒级断言**入口（与 `setExpressions` 同一类诊断 seam） |
+| **`hook window.fetch` 抓调用栈** | 定位"**谁在发这个请求**"的最快办法：在页面里包一层 `window.fetch`，把 `new Error().stack` 的函数链压成 `A < B < C` 再按链归类。10 秒出结果，比读代码猜快一个量级 —— 本轮就是靠它一次定位到 `fire ← chooseSlotOption ← saveOutfit` |
 
 ### 7.10.6 ⚠️ 本轮遗留（别当成已解决）
 
