@@ -67,7 +67,7 @@ for (const f of fragments) scripts[scoreSync(f).script] = (scripts[scoreSync(f).
 console.log('  片段分布：' + Object.entries(scripts).sort((a, b) => b[1] - a[1])
   .map(([k, v]) => `${k} ${v} (${(100 * v / fragments.length).toFixed(0)}%)`).join(' · '));
 const lens = fragments.map((f) => f.length);
-console.log(`  长度：p25=${pct(lens, 25)}  中位=${pct(lens, 50)}  p75=${pct(lens, 75)}  p95=${pct(lens, 95)}  max=${Math.max(...lens)}`);
+console.log(`  长度：p25=${pct(lens, 25)}  中位=${pct(lens, 50)}  p75=${pct(lens, 75)}  p95=${pct(lens, 95)}  max=${lens.reduce((a,b)=>a>b?a:b,0)}`);
 const over = lens.filter((n) => n > 180).length;
 console.log(`  超 splitter 硬上限(180) 的片段：${over} 个`);
 
@@ -94,7 +94,7 @@ for (const [name, { words }] of Object.entries(TRIGGER_LEXICON)) {
 const scores = fragments.map((f) => scoreSync(f).score);
 console.log('\n=== 3. 分数分位 ===');
 console.log(`  p50=${pct(scores, 50)}  p75=${pct(scores, 75)}  p90=${pct(scores, 90)}`
-  + `  p95=${pct(scores, 95)}  p99=${pct(scores, 99)}  max=${Math.max(...scores)}`);
+  + `  p95=${pct(scores, 95)}  p99=${pct(scores, 99)}  max=${scores.reduce((a,b)=>a>b?a:b,0)}`);
 
 console.log('\n=== 4. 各阈值通过率（对比英文语料 0.50→7.6%）===');
 for (const t of [0.4, 0.45, 0.5, 0.55, 0.6, 0.65]) {

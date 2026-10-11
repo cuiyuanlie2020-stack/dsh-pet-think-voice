@@ -95,7 +95,7 @@ for (const [rule, n] of Object.entries(hitCounts).sort((a, b) => b[1] - a[1])) {
 const scores = fragments.map((f) => scoreSync(f).score);
 console.log('\n=== 3. 分数分位 ===');
 console.log(`  p50=${pct(scores, 50)}  p75=${pct(scores, 75)}  p90=${pct(scores, 90)}`
-  + `  p95=${pct(scores, 95)}  p99=${pct(scores, 99)}  max=${Math.max(...scores)}`);
+  + `  p95=${pct(scores, 95)}  p99=${pct(scores, 99)}  max=${scores.reduce((a,b)=>a>b?a:b,0)}`);
 
 console.log('\n=== 4. 各阈值通过率（DESIGN §5.1 目标：降噪 ~90% ⇒ 通过率 ≈10%）===');
 for (const t of [0.45, 0.5, 0.55, 0.6, 0.62, 0.65, 0.7]) {
