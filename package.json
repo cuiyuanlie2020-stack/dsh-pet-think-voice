@@ -29,7 +29,6 @@
       "default": "./lib/index.js"
     },
     "./client": "./lib/client.js",
-    "./desktop": "./lib/desktop.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
@@ -48,10 +47,6 @@
       "inject": [],
       "platform": "web"
     }
-  },
-  "optionalDependencies": {
-    "dsh-pet-live2d-desktop-darwin-arm64": "3.3.1",
-    "dsh-pet-live2d-desktop-win32-x64": "3.3.1"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

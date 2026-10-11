@@ -26,6 +26,7 @@ import { splitFragments } from '../lib/core/fragment-splitter.js';
 import { DEFAULT_THRESHOLD, scoreSync } from '../lib/core/interest-scorer.js';
 import { polish } from '../lib/core/line-polisher.js';
 import { detectLang } from '../lib/core/reasoning-language.js';
+import { createSpeechPlanner, isEmotional } from '../lib/core/speech-planner.js';
 import { synthesize } from './edge-tts-zerodep.mjs';
 
 const args = process.argv.slice(2);
@@ -36,7 +37,16 @@ const flag = (name, fallback) => {
 const CORPUS = flag('--corpus', 'p0/out/corpus-wb-zh.jsonl');
 const N = Number(flag('--n', '20'));
 const SEED = Number(flag('--seed', '20261011'));
-const OUTDIR = flag('--outdir', 'p0/out/listen-kit');
+/**
+ * `sched` = 走**真实调度**（20s 频率闸 + 队列上限 3 + 情绪优先）之后，她**真正会念**的那些；
+ * `pool`  = 直接从放行池随机抽（不经过调度）。
+ * ⚠️ 验证「情绪优先」这类**调度层**改动必须用 `sched` —— 从池子里抽是看不出来的。
+ */
+const MODE = flag('--mode', 'sched');
+/** `sched` 模式的时间模型：一次思考的耗时。语料没有时间戳，只能给常量 ——
+ *  它只决定"20s 闸卡不卡得住"，不改变对照结论。 */
+const THINK_MS = Number(flag('--think-ms', '15000'));
+const OUTDIR = flag('--outdir', 'p0/out/listen-kit-' + (MODE === 'sched' ? 'sched' : 'pool'));
 
 /**
  * 确定性伪随机（xorshift32）。
@@ -72,7 +82,7 @@ function reasoningOf(line) {
 }
 
 // ── ① 全量跑链路，收集"过阈且放行"的片段 ─────────────────────────────
-const pool = [];
+const batches = [];
 let reasonings = 0;
 let fragments = 0;
 let passed = 0;
@@ -84,6 +94,7 @@ for await (const line of rl) {
   const text = reasoningOf(line);
   if (text === null) continue;
   reasonings += 1;
+  const batch = [];
   for (const fragment of splitFragments(text)) {
     fragments += 1;
     const result = scoreSync(fragment.text);
@@ -105,13 +116,36 @@ for await (const line of rl) {
       skippedLang += 1;
       continue;
     }
-    pool.push({ text: picked.text, emotion: picked.emotion, score: picked.score, lang });
+    batch.push({ text: picked.text, emotion: picked.emotion, score: picked.score, lang });
   }
+  batches.push(batch);
 }
 
 console.log(`语料 ${CORPUS}`);
+const poolAll = batches.flat();
+let pool = poolAll;
+let modeNote = '';
+if (MODE === 'sched') {
+  const planner = createSpeechPlanner();
+  let now = 0;
+  const spoken = [];
+  for (const batch of batches) {
+    for (const item of batch) planner.submit(item, now);
+    now += THINK_MS;
+    for (;;) {
+      const task = planner.next(now);
+      if (!task) break;
+      spoken.push(task);
+    }
+  }
+  pool = spoken;
+  const emo = spoken.filter((t) => isEmotional(t.emotion));
+  modeNote = `\n走调度后实际念出 ${spoken.length} 条，其中情绪句 ${emo.length}`
+    + `（${(emo.length / Math.max(1, spoken.length) * 100).toFixed(1)}%）`;
+}
+
 console.log(`思考 ${reasonings} 条 → 片段 ${fragments} → 过阈 ${passed} → 拟人化拒 ${rejected}`
-  + ` → 非中文剔除 ${skippedLang} → 放行池 ${pool.length}`);
+  + ` → 非中文剔除 ${skippedLang} → 放行池 ${poolAll.length}` + modeNote);
 if (pool.length === 0) {
   console.error('放行池是空的，检查语料路径与阈值。');
   process.exit(1);
@@ -194,7 +228,9 @@ const html = [
   'footer button{font:inherit;padding:5px 14px;border-radius:8px;border:1px solid #ccd2dc;background:#fafbfc;cursor:pointer}',
   '</style></head><body><div class="wrap">',
   '<h1>桌宠听感验收</h1>',
-  '<div class="sub">' + items.length + ' 条随机样本（真实语料 → 过阈 → 拟人化放行）· 音色与真机一致（Xiaoyi +30Hz）',
+  '<div class="sub">' + items.length + ' 条随机样本（'
+    + (MODE === 'sched' ? '**走真实调度**后她真正会念的' : '直接从放行池抽的')
+    + '）· 音色与真机一致（Xiaoyi +30Hz）',
   ' · 判据：<b>这句话她念出来，像不像话？</b>（不是"有没有信息"，是"听着自不自然"）</div>',
   '<ul>' + rows + '</ul>',
   '</div>',
