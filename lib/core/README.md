@@ -12,7 +12,7 @@
 | `fragment-splitter` | `fragment-splitter.js` | 长思考切成语义完整、适合朗读的小片段 | `string` → `Fragment[]` | ✅ P2-3（21 例；真实语料 0 超限 / 0 丢字） |
 | `interest-scorer` | `interest-scorer.js` | 片段"有趣度"打分（规则 + 可选小模型） | `Fragment` → `score 0..1` | ✅ P2-4 规则级（19 例）；P4-1 校词表 / P4-4 接小模型 |
 | `reasoning-language` | `reasoning-language.js` | 思考语种：策略校验 / 注入文案 / 语种检测 / **音色解析（有状态）** | `policy` → resolver → `{voice, pitch, lang, reason}` | ✅ P3-0（21 例）。音色**由策略决定且会话内恒定** —— 绝不逐句切换（用户 2026-10-11 修正） |
-| `line-polisher` | — | 拟人化改写 + 产出 `emotion` 标签 | `Fragment` → `Line` | ⏸️ P4-2 / P4-3 |
+| `line-polisher` | `line-polisher.js` | 拟人化：清洗 + 裁齐 + 产出 `emotion` 标签 | `Fragment` + 打分结果 → `Line \| null` | ✅ P4-2（30 例）。🔴 **只挑只裁不改字**，被"输出是输入的子序列"不变量守着（DESIGN §5.2） |
 | `speech-planner` | `speech-planner.js` | 节流 / 去重 / 排队 / 频率闸 | `Line[]` → `SpeakTask[]` | ✅ P2-5（23 例） |
 | `load-gate` | `load-gate.js` | 负载闸**判定**：超阈值**持续** N 秒 ⇒ 静默，回落持续 N 秒 ⇒ 恢复 | `sample, now` → `{silent, changed}` | ✅ P3-5（11 例）。**采样**在 `lib/infra/load-probe.js` |
 
