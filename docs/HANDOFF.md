@@ -9,7 +9,7 @@
 > | 工作区 / 仓库根 | `C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/`（**两者相同**，就地 `git init`） |
 > | 阶段 | P0 ✅ · P1 ✅ · **P2 ← 现在在这里** |
 > | HEAD | `main` @ `c124551`（merge：D8 落地 4 提交）· tag `v0.2-p1-scaffold-2026-10-11` |
-> | 实现代码 | **上游基线 81 文件已入仓**（改造前）；`lib/core|infra|app/` 自有实现仍为 **0 行** |
+> | 实现代码 | 上游基线 81 文件已入仓；**自有实现起步**：`lib/core/thinking-extractor.js`（P2-1）+ 26 例单测；`lib/infra` `lib/app` 仍为 0 行 |
 
 ---
 
@@ -43,9 +43,10 @@
 | 仓库 | **134 文件 / 5.716 MB**；`.git` 约 1.2 MB；工作区总 110 MB（其余为不入库资产） |
 | 提交 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ 分支 `chore/import-upstream-baseline`（`2b78543` `f64f7ab` `0e21150` `fbc52bc`）→ merge `c124551` |
 | tag | `v0.1-baseline-2026-10-11`（P0 收口）· `v0.2-p1-scaffold-2026-10-11`（P1 骨架） |
-| 验收 | `<python> scripts/review/run_all.py` → **33 PASS / 0 FAIL / 1 SKIP / 2 INFO**（约 1m48s）；`--fast` → 22 PASS / 0 FAIL |
+| 验收 | `<python> scripts/review/run_all.py` → **33 PASS / 0 FAIL / 1 SKIP / 2 INFO**（约 1m48s）；`--fast` → **23 PASS / 0 FAIL**（P2-1 落地后 S5 由 SKIP 变为实跑） |
 | 目录骨架 | `lib/`（上游 host+browser+desktop 半区）· `lib/core|infra|app`（各带职责 README）· `pets/`（美术）· `locale/` `src/` · `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
 | 上游基线 | `A8Chann/dsh-pet-live2d` @ `33af354`（2026-10-10），插件版本 3.3.1 → 已改名为 `dsh-pet-think-voice` |
+| **P2 进度** | **P2-1 ✅**（`lib/core/thinking-extractor`，26 单测 + 真实语料回放）· P2-2 ~ P2-6 未开工 |
 | 规则形态 | **仓库根级 `CODEBUDDY.md`**（不写 `paths`，覆盖整子树）——机制已由引擎代码核实 |
 | 探针证据 | `p0/out/probe.log`（V1 运行时闭环，**已被 gitignore，不入库**，本机还在盘上） |
 | P2 语料 | `~/.dsh/sessions/**/session.v4.jsonl.zstd`（**27 个**；其中就有本工作区的会话目录） |
@@ -217,18 +218,20 @@ DESIGN §8.2 要求「上游 `LICENSE` + `NOTICE.md` **原样保留不可改写*
 
 | 编号 | 切片 | 改哪里 | ✅ 验收判据 | 回归判据 | 预估 |
 |---|---|---|---|---|---|
-| P2-1 | `ThinkingExtractor` | `lib/core/thinking-extractor.*` + 单测 | 单测：给定样本事件 → 提取出预期文本；**语料取自 `p0/` 验过的真实会话数据** | 单测全绿 | 2h |
+| P2-1 | `ThinkingExtractor` ✅ **已完成** | `lib/core/thinking-extractor.js` + 单测 | 单测：给定样本事件 → 提取出预期文本（**26 例全绿**）；另有**真实语料回放**：212/212 两通道逐字一致、拦下 24 个空 `reasoning` 块 | ✅ `--fast` 23 PASS / 0 FAIL | ✅ |
 | P2-2 | host 接入采集 | `lib/index.js` 订阅（§4.1 两条通道）+ 调 P2-1 | 真实会话中 host 日志出现思考片段 | **原有 8 相位仍正常** | 2h |
 | P2-3 | `FragmentSplitter` | `lib/core/fragment-splitter.*` + 单测 | 单测：长思考（≥1000 字）→ 语义完整片段（不切碎句子）；含**长度上限** | 单测全绿 | 2h |
 | P2-4 | `InterestScorer`（**仅规则级**） | `lib/core/interest-scorer.*` + 词表 + 单测 | 单测：命中词表片段得分高；噪声片段得分低 | 单测全绿 | 2h |
 | P2-5 | `SpeechPlanner`（仅节流/去重） | `lib/core/speech-planner.*` + 单测 | 单测：**20s 内最多出 1 句**（D3 已定）；重复片段被去重 | 单测全绿 | 1.5h |
 | P2-6 | SSE 下发 + 气泡显示 | `lib/index.js`（`speak` 帧）+ `lib/client.js`（气泡） | 真实会话中**气泡出现思考片段文字** | 气泡原有功能（相位提示）不受影响 | 2h |
 
-**优先级**：P2-1 与 P2-3 最高（不切分就没法用，因为思考中位 1295 字）。
+**优先级**：P2-1 ✅ 已完成。**下一个是 P2-3 `FragmentSplitter`**（原本与 P2-1 并列最高：不切分就没法用，因为思考中位 1290 字）；P2-2（host 接入）可与 P2-3 并行，但需 `lib/index.js` 订阅两条通道。
+
+**P2-1 的复用点**：`lib/core/thinking-extractor.js` 已导出 `extractReasoning`（自动判别双通道）；P2-2 接 host 时**直接用**，不要再写一份订阅侧解析。⚠️ 实时通道返回的是**增量**（`meta.isDelta`），累积归调用方。
 
 **开工前必读**：§6.2 的三条改名硬契约 —— P2-2 改 `lib/index.js`、P2-6 改 `lib/client.js` 时，**别把包名 / row id / 路由前缀改漂了**。
 
-**纪律**（PLAN §0.2）：L1 任何 >2 分钟的任务先报「耗时 / 资源 / 产出 / 能否中断」；L2 小样本能验的绝不跑全量；L4 **同一文件改动必须串行 + 改完回读校验**；L5 改完立刻跑验收。**开新分支**（`feat/p2-thinking-extractor` 等），别直接改 `main`。
+**纪律**（PLAN §0.2）：L1 任何 >2 分钟的任务先报「耗时 / 资源 / 产出 / 能否中断」；L2 小样本能验的绝不跑全量；L4 **同一文件改动必须串行 + 改完回读校验**；L5 改完立刻跑验收。**开新分支**（`feat/p2-fragment-splitter` 等），别直接改 `main`。
 
 ---
 
