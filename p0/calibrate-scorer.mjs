@@ -83,7 +83,9 @@ for (const f of fragments) {
 for (const name of Object.keys(TRIGGER_LEXICON)) {
   const key = `信号·${name}`;
   const n = hitCounts[key] ?? 0;
-  const flag = n === 0 ? '  ❌ 一个都没命中 —— 这桶词表对本模型无效' : '';
+  // ⚠️ 0 命中不等于「无效」：本脚本语料为 DSH 派生的小样本，长尾桶
+  //    （如「手滑·坦白」）在此天然为 0，判据请用 p0/polish-probe.mjs（WB 大语料）。
+  const flag = n === 0 ? '  ⚠️ 本语料零命中（长尾桶在此为 0 属预期；用 polish-probe 看大语料）' : '';
   console.log(`  ${name.padEnd(6)} ${String(n).padStart(4)}  (${(100 * n / fragments.length).toFixed(1)}%)${flag}`);
 }
 for (const [rule, n] of Object.entries(hitCounts).sort((a, b) => b[1] - a[1])) {
@@ -117,6 +119,9 @@ const STRONG = [
   'Interesting — turns out the cache was stale all along.',
   '等等，这个方向其实不对，我该重新看一遍再动手。',
   '结论：参数顺序反了，这说明之前的报错根本原因就在这里。',
+  // ⚠️ 2026-10-11 新增「手滑·坦白」桶时补的正例（原文取自真实语料抽样）
+  '对，我搞错了 —— 我以为它们不连续，其实中间那些行我也包含进去了。',
+  '好，我错了。用户是对的。让我删掉这行——它是我笔误。',
 ];
 // 弱信号 = 只剩"犹豫权衡"（权重 0.15，**刻意设低**）。
 // 这类句子过不了闸是**设计意图**，不是缺陷 —— 只作信息展示，不计入失败。
