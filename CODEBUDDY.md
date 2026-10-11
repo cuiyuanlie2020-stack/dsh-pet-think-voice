@@ -62,6 +62,8 @@ ELECTRON_RUN_AS_NODE=1 "<DSH>\DeepSeek Harness.exe" --expose-internals \
   （本仓库出现过「Edit 报成功但内容未落盘」）
 - 动手前先 `Grep` 确认没有现成实现；>2 分钟的活先报「耗时 / 资源 / 产出 / 能否中断」
 - **守卫只能从红变绿，不许把守卫改成不报**
+- ⚠️ **根 `package.json` 是 `"type": "module"`** ⇒ 全树 `.js` 都按 ESM 解析。子目录里放 CJS 脚本（`bench/`、`p0/`）**必须**在同层加 `package.json` 写 `{"type":"commonjs"}`，否则 `require is not defined`
+- ⚠️ **资源闸只在完整跑里执行**：`--fast` 跳过 R-A/R-B/R-C/R-D。搬动目录结构 / 新增脚本后必须跑一次完整 `run_all.py`
 
 ## 6. 改完必做
 

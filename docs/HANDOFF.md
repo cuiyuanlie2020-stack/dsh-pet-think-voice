@@ -245,6 +245,7 @@ DESIGN §8.2 要求「上游 `LICENSE` + `NOTICE.md` **原样保留不可改写*
 | 7 | Windows CPU 计时精度 **15.6ms** | "0ms" 读作 "<15.6ms"，不是绝对零 |
 | 8 | 浏览器 CPU 别用跨进程求和（Edge 进程数会变，进程退出会丢已累计 CPU） | 用页面内 ticker 首尾插桩；两法互证 |
 | 9 | 插件只能由 DSH 自己装：`plugin_manager.install_bundle` | **不许**手写 profile 的 `package.json` / `cordis.patch.yml`，**不许**在 profile 目录跑 pnpm |
+| 10 | **根 `package.json` 有 `"type": "module"` ⇒ 全树 `.js` 被当 ESM**。D8 把上游插件包搬到仓库根后，`bench/host_probe.js`、`bench/serve.js`、`p0/{asar,catalog,decls}.js`（都是 CJS）当场 `require is not defined` 崩掉 → **R-A / R-D 两个资源闸静默变 FAIL** | 按目录声明类型：`bench/package.json` 与 `p0/package.json` 写 `{"type":"commonjs"}`；`p0/probe-plugin/package.json` 已有 `{"type":"module"}` 作嵌套覆盖。**新增任何子目录脚本后，跑一次完整 `run_all.py`（不能只跑 `--fast`，资源闸在 `--fast` 里是 SKIP）** |
 
 ---
 
