@@ -5,11 +5,11 @@
 >
 > | 项 | 值 |
 > |---|---|
-> | 更新时间 | 2026-10-11 |
+> | 更新时间 | 2026-10-11（D8 已拍 + 上游基线已入仓） |
 > | 工作区 / 仓库根 | `C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/`（**两者相同**，就地 `git init`） |
 > | 阶段 | P0 ✅ · P1 ✅ · **P2 ← 现在在这里** |
-> | HEAD | `210e6ac` · tag `v0.2-p1-scaffold-2026-10-11` |
-> | 实现代码 | **0 行**（`p0/` 是探针与原型，`scripts/review/` 是验收脚本） |
+> | HEAD | `main` @ `f64f7ab`（含 D8 落地两提交）· tag `v0.2-p1-scaffold-2026-10-11` |
+> | 实现代码 | **上游基线 81 文件已入仓**（改造前）；`lib/core|infra|app/` 自有实现仍为 **0 行** |
 
 ---
 
@@ -40,14 +40,16 @@
 
 | 项 | 值 |
 |---|---|
-| 仓库 | 52 文件 / 363 KB；`.git` 约 300 KB；工作区总 110 MB（其余为不入库资产） |
-| 提交 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac`（P1 三个原子提交） |
+| 仓库 | **134 文件 / 5.716 MB**；`.git` 约 1.2 MB；工作区总 110 MB（其余为不入库资产） |
+| 提交 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ `2b78543` `f64f7ab`（**D8 落地：上游基线入仓 + 改名**） |
 | tag | `v0.1-baseline-2026-10-11`（P0 收口）· `v0.2-p1-scaffold-2026-10-11`（P1 骨架） |
-| 验收 | `<python> scripts/review/run_all.py` → **33 PASS / 0 FAIL / 1 SKIP / 2 INFO**（约 1m48s） |
-| 目录骨架 | `lib/core` `lib/infra` `lib/app`（各带职责 README）· `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
+| 验收 | `<python> scripts/review/run_all.py` → **33 PASS / 0 FAIL / 1 SKIP / 2 INFO**（约 1m48s）；`--fast` → 22 PASS / 0 FAIL |
+| 目录骨架 | `lib/`（上游 host+browser+desktop 半区）· `lib/core|infra|app`（各带职责 README）· `pets/`（美术）· `locale/` `src/` · `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
+| 上游基线 | `A8Chann/dsh-pet-live2d` @ `33af354`（2026-10-10），插件版本 3.3.1 → 已改名为 `dsh-pet-think-voice` |
 | 规则形态 | **仓库根级 `CODEBUDDY.md`**（不写 `paths`，覆盖整子树）——机制已由引擎代码核实 |
 | 探针证据 | `p0/out/probe.log`（V1 运行时闭环，**已被 gitignore，不入库**，本机还在盘上） |
 | P2 语料 | `~/.dsh/sessions/**/session.v4.jsonl.zstd`（**27 个**；其中就有本工作区的会话目录） |
+| 开发循环叠加层 | `.workbuddy/tmp/overlay-ourhost.yml`（**不入库**，临时件）；P2-2 起需固化成入库件 |
 
 ---
 
@@ -142,19 +144,70 @@ ELECTRON_RUN_AS_NODE=1 "<DSH>\DeepSeek Harness.exe" --expose-internals \
 - ⚠️ **只覆盖 Host 半区**；浏览器侧（气泡 / 口型）需 `web` profile
 - ⚠️ **P5 发布前必须另做一次真实安装验证**（GUI 插件页 或 `install_bundle`），否则"社区能装上"从未被验证
 
+**叠加层内容**（指到本仓根插件，`id` 用 row id）：
+
+```yaml
+- insert:
+    - id: think-voice-pet
+      name: 'file:///C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/lib/index.js'
+```
+
+**三个层级的验证成本（由粗到细，P2 起按需选）**：
+
+| 层级 | 命令 | 耗时/成本 | 能证明什么 |
+|---|---|---|---|
+| 语法 | `node --check lib/*.js` | 秒级 | 机械替换没把文件改坏 |
+| ESM 导入 + 路由枚举 | `import('file:///…/lib/index.js')` 后调 `buildRoutes()` | **秒级、零 DSH 状态** | host 半区真实可加载；路由前缀契约正确 |
+| 配置树合成 | `--dump-config`（加 `--patch`） | 秒级、零模型调用 | 叠加层被正确解析、row 已插入 |
+| 真实回合 | `--profile headless "<短问题>"` | ~1min + 一次模型调用 | 端到端 host 闭环（P0 探针就是这么验的） |
+
 ---
 
-## 6. ⚠️ P2 开工前的**第一个待决项（D8，PLAN §8 已登记）**
+## 6. ✅ D8 已拍（2026-10-11）：走**甲·快照复制**，且搬运时一并改名
 
-**问题**：P2-2 要改 `lib/index.js`、P2-6 要改 `lib/client.js`，但**本仓目前没有这两个文件**——上游插件包还在 `vendor/dsh-pet-live2d/dsh-live2d-pet/`（整体不入库）。
+**原问题**：P2-2 要改 `lib/index.js`、P2-6 要改 `lib/client.js`，但本仓当时没有这两个文件——它们只在 `vendor/dsh-pet-live2d/dsh-live2d-pet/`（整体不入库）。
 
-| 方案 | 做法 | 代价 |
+### 6.1 已执行（提交 `2b78543` + `f64f7ab`）
+
+| 项 | 结果 |
+|---|---|
+| 上游来源 | `A8Chann/dsh-pet-live2d` @ `33af354`（2026-10-10），插件版本 3.3.1（无 tag） |
+| 搬运范围 | `lib/` `pets/` `locale/` `src/` `package.json` `cordis.patch.yml` `screenshots.json` + 上游根 `LICENSE`(MIT) 与 `NOTICE.md` |
+| **未搬运** | `docs/`（1.1MB 截图，上游 NOTICE 归为 CC BY-NC-SA，避免与代码区混杂）、`README.md`、`CHANGELOG.md` |
+| 体积 | 0.27MB → **5.716MB**（DESIGN 7.1 阈值 10MB，余量 4.28MB） |
+| 改名 | `dsh-pet-live2d` → `dsh-pet-think-voice`；`live2d-pet` → `think-voice-pet` |
+| R4 | `icon.png`（CC BY-NC-SA，改编自模型截图）从根目录移入美术目录 `pets/` |
+
+### 6.2 ⚠️ 改名的三条硬契约（改了任何一条都必须同步，否则"注册没报错、页面上什么都没多出来"）
+
+| 契约 | 必须逐字相等的三/两方 |
+|---|---|
+| 包名 | `package.json#name` = `client.js` 的 `__ModuleLoader__.load({id})` = `client.js` 的 `PACKAGE_NAME` |
+| 插件 row id | `cordis.patch.yml#id` = `client.js` 的 `const name` |
+| HTTP 路由前缀 | host `lib/index.js` 的 `export const API` = browser `lib/client.js` 的 `const API` |
+
+已实测核对通过：6 条路由全部挂在 `/api/think-voice-pet` 下（`buildRoutes()` 枚举），`lib/index.js` 10ms 导入成功、`apply()` 不抛错。
+
+### 6.3 有意保留未改（别再当成"漏改"）
+
+| # | 位置 | 为什么不改 |
 |---|---|---|
-| **甲（推荐）** | 把上游 `dsh-live2d-pet/` 的插件文件复制到仓库根作为改造基线：`package.json` / `cordis.patch.yml` / `lib/`（含 `live2d-vendor.js`）/ `locale/` / `pets/` / `icon.png` / `src/`。上游 `LICENSE` + `NOTICE.md` **原样保留不可改写**；模型按 R4 **分目录** | 需一次搬运（含 `lib/` 1.4MB + `pets/` 4.2MB + vendor 783KB）；改动记录干净 |
-| 乙 | 先做真正的 GitHub fork，`git remote add upstream` + `merge --allow-unrelated-histories` | 现在就要处理两个不相干历史的合并，而本仓已有 P0/P1 独立历史 |
-| 丙 | 本仓只放改造层，上游代码构建期从 npm 拉 | 破坏离线开发；P5 打包复杂化 |
+| a | `dsh-pet-live2d-desktop-*`（`package.json` 2 处 + `lib/desktop.js` 8 处 + 注释 3 处） | 上游**已发布**的桌面端 npm 包名与二进制名，改了即成死链；待 **D5**（Tauri 壳是否保留）拍板后一并处理 |
+| b | `package.json` 的 `repository` / `homepage` / `bugs`（3 处 URL） | 本项目尚无远端仓库；P5-2 处理 |
+| c | `pets/ds-whale-girl/**` 内 6 处（`README.md` / `安装说明.md`） | 美术包自带文档，逐字保留便于将来 `diff` 同步上游 |
 
-**开工前先确认走甲。** 另需注意：搬运后 `run_all.py --fast` 的 S4（入库体积 ≤10MB）会从 0.26MB 涨到约 7MB——仍达标，但需复核；`pets/` 与 Cubism Core 的许可边界要按 R4 明确落在 `.gitignore` 或分目录。
+### 6.4 ⚠️ 新增待决：D9 —— 上游 `NOTICE.md` 与本项目 `NOTICE.md` 同名冲突
+
+DESIGN §8.2 要求「上游 `LICENSE` + `NOTICE.md` **原样保留不可改写**」且「**另建**本项目自己的 `NOTICE.md`」——但两者同名。当前落位：上游 `NOTICE.md` 占用根目录。
+**候选**：① 上游改名 `NOTICE-upstream.md` + 我们占 `NOTICE.md`（但违反"原样保留"字面）② 上游占 `NOTICE.md`，我们写 `docs/COMPLIANCE.md` ③ 上游占 `NOTICE.md`，我们写 `NOTICE.local.md`。**未定，最晚 P5-1 拍。**
+
+### 6.5 原候选方案（留档，勿重开讨论）
+
+| 方案 | 结论 |
+|---|---|
+| **甲（已采用）** | 快照复制到仓库根作改造基线；改动记录干净、可立即开工。代价：丢失上游 git 历史，将来同步上游需按记录的 sha `33af354` 重新 `diff` |
+| 乙 | 真 fork + `merge --allow-unrelated-histories`：保留历史，但要处理两段互不相干历史的合并 |
+| 丙 | 构建期从 npm 拉：破坏离线开发，P5 打包复杂化 |
 
 ---
 
@@ -168,10 +221,12 @@ ELECTRON_RUN_AS_NODE=1 "<DSH>\DeepSeek Harness.exe" --expose-internals \
 | P2-2 | host 接入采集 | `lib/index.js` 订阅（§4.1 两条通道）+ 调 P2-1 | 真实会话中 host 日志出现思考片段 | **原有 8 相位仍正常** | 2h |
 | P2-3 | `FragmentSplitter` | `lib/core/fragment-splitter.*` + 单测 | 单测：长思考（≥1000 字）→ 语义完整片段（不切碎句子）；含**长度上限** | 单测全绿 | 2h |
 | P2-4 | `InterestScorer`（**仅规则级**） | `lib/core/interest-scorer.*` + 词表 + 单测 | 单测：命中词表片段得分高；噪声片段得分低 | 单测全绿 | 2h |
-| P2-5 | `SpeechPlanner`（仅节流/去重） | `lib/core/speech-planner.*` + 单测 | 单测：30s 内最多出 1 句；重复片段被去重 | 单测全绿 | 1.5h |
+| P2-5 | `SpeechPlanner`（仅节流/去重） | `lib/core/speech-planner.*` + 单测 | 单测：**20s 内最多出 1 句**（D3 已定）；重复片段被去重 | 单测全绿 | 1.5h |
 | P2-6 | SSE 下发 + 气泡显示 | `lib/index.js`（`speak` 帧）+ `lib/client.js`（气泡） | 真实会话中**气泡出现思考片段文字** | 气泡原有功能（相位提示）不受影响 | 2h |
 
 **优先级**：P2-1 与 P2-3 最高（不切分就没法用，因为思考中位 1295 字）。
+
+**开工前必读**：§6.2 的三条改名硬契约 —— P2-2 改 `lib/index.js`、P2-6 改 `lib/client.js` 时，**别把包名 / row id / 路由前缀改漂了**。
 
 **纪律**（PLAN §0.2）：L1 任何 >2 分钟的任务先报「耗时 / 资源 / 产出 / 能否中断」；L2 小样本能验的绝不跑全量；L4 **同一文件改动必须串行 + 改完回读校验**；L5 改完立刻跑验收。**开新分支**（`feat/p2-thinking-extractor` 等），别直接改 `main`。
 
@@ -201,9 +256,10 @@ N1 不做"读回复全文" · N2 不做账号/云端同步 · N3 不训练/微�
 
 | # | 待定 | 最晚定于 |
 |---|---|---|
-| **D8** | **上游插件包如何进入本仓（§6）** | **P2 开工前（当前唯一阻塞）** |
-| D3 | 朗读节奏参数（可先默认 30s/1 句） | P2-5 开工前 |
-| D5 | Tauri 桌面壳是否保留 | P3 结束前 |
+| ~~D8~~ | ~~上游插件包如何进入本仓~~ ✅ **已拍甲（2026-10-11）并已落地**，见 §6 | 已解决 |
+| **D9** | **上游 `NOTICE.md` 与本项目 `NOTICE.md` 同名冲突**（§6.4） | P5-1 |
+| D3 | ~~朗读节奏~~ ✅ **已定为 20s/句**（用户 2026-10-11 指定；DESIGN §7.3 已同步） | 已解决 |
+| D5 | Tauri 桌面壳是否保留（**顺带解决 `dsh-pet-live2d-desktop-*` 改名遗留**，§6.3a） | P3 结束前 |
 | D2 | 筛选词表与阈值 | P4-1（需真实数据校准） |
 | D6 | 小模型打分是否默认开 | P4-4 |
 | D7 | 负载哨兵阈值与检测周期 | P3-5 开工前 |
@@ -212,8 +268,9 @@ N1 不做"读回复全文" · N2 不做账号/云端同步 · N3 不训练/微�
 
 ## 交接 checklist
 
-- [ ] 确认工作区开的是 `C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/`（= 仓库根）
-- [ ] 确认 `CODEBUDDY.md` 内容已注入（没注入就手动读一遍）
-- [ ] 跑一次 `<python> scripts/review/run_all.py --fast` → 应为 22 PASS / 0 FAIL
-- [ ] 读 DESIGN §2 §4 §6 + PLAN §4 → 复述一遍 P2 出口判据
-- [ ] **拍板 D8（建议走甲）**，再开分支动工
+- [x] 确认工作区开的是 `C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/`（= 仓库根）
+- [x] 确认 `CODEBUDDY.md` 内容已注入（没注入就手动读一遍）
+- [x] 跑一次 `<python> scripts/review/run_all.py --fast` → **22 PASS / 0 FAIL**（2026-10-11 交接时实测）
+- [x] 读 DESIGN §2 §4 §6 + PLAN §4 → 复述 P2 出口判据
+- [x] ~~拍板 D8~~ ✅ **已拍甲并落地**（§6）；另 D3 已定为 20s/句
+- [ ] ▶️ **开工 P2-1**：`git checkout -b feat/p2-thinking-extractor`，先读 §6.2 三条硬契约
