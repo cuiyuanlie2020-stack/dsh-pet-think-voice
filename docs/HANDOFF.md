@@ -8,7 +8,7 @@
 > | 更新时间 | 2026-10-11（D8 已拍 + 上游基线已入仓） |
 > | 工作区 / 仓库根 | `C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/`（**两者相同**，就地 `git init`） |
 > | 阶段 | P0 ✅ · P1 ✅ · **P2 ← 现在在这里** |
-> | HEAD | `main` @ `f64f7ab`（含 D8 落地两提交）· tag `v0.2-p1-scaffold-2026-10-11` |
+> | HEAD | `main` @ `c124551`（merge：D8 落地 4 提交）· tag `v0.2-p1-scaffold-2026-10-11` |
 > | 实现代码 | **上游基线 81 文件已入仓**（改造前）；`lib/core|infra|app/` 自有实现仍为 **0 行** |
 
 ---
@@ -41,7 +41,7 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | **134 文件 / 5.716 MB**；`.git` 约 1.2 MB；工作区总 110 MB（其余为不入库资产） |
-| 提交 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ `2b78543` `f64f7ab`（**D8 落地：上游基线入仓 + 改名**） |
+| 提交 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ 分支 `chore/import-upstream-baseline`（`2b78543` `f64f7ab` `0e21150` `fbc52bc`）→ merge `c124551` |
 | tag | `v0.1-baseline-2026-10-11`（P0 收口）· `v0.2-p1-scaffold-2026-10-11`（P1 骨架） |
 | 验收 | `<python> scripts/review/run_all.py` → **33 PASS / 0 FAIL / 1 SKIP / 2 INFO**（约 1m48s）；`--fast` → 22 PASS / 0 FAIL |
 | 目录骨架 | `lib/`（上游 host+browser+desktop 半区）· `lib/core|infra|app`（各带职责 README）· `pets/`（美术）· `locale/` `src/` · `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
