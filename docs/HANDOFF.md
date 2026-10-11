@@ -427,6 +427,9 @@ S5：**11 个测试文件 / 206 例全绿**。
 | 11 | **`--patch` 是启动器选项，必须放在 `--profile` 之前**。写成 `--profile web --patch x.yml --port …` 会被 **web app** 当成自己的参数，报 `unknown option '--patch'` | 正确顺序：`… --patch <overlay> --profile web --port 8123 --no-open`。（headless 容忍该顺序，web 不容忍 —— 所以我在 headless 上用对了、到 web 上才踩到） |
 | 12 | **curl 在本机走代理** → 访问 127.0.0.1 返回 **502**（看起来像服务端错，其实是代理错） | 加 `--noproxy '*'`。这条害我一度以为"有别的进程占着 8123" |
 | 13 | **普通 `&` 派生的后台进程活不过一次工具调用**（服务起来马上被打死，端口 TIME_WAIT 残留） | 要用受管理的后台任务（`run_in_background`），并在收尾显式 kill |
+| 14 | **从 Git Bash 起 DSH CLI 会被 MSYS 改坏路径**：`C:\Users\...` 被转成 `C:\c\Users\...` → `Cannot find module`。⚠️ 单引号**挡不住**（转换发生在参数传递层） | 加 **`MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'`**。实测三连踩：先误判为 exe 路径错、再误判为 `app.asar` 不可访问（其实它是**文件**，`ls` 报 "Not a directory" 属正常，Electron 能读内部路径） |
+| 15 | **`--patch` 在禁用路径转换后不能再用 `file:///` 绝对路径** —— 会被当相对路径拼到 cwd（`failed to read overlay <cwd>\file:\C:\...`） | 与 §5 的规则合起来用：**禁转换时给相对路径**（`.workbuddy/tmp/x.yml`）；不涉转换时给 `file:///` 绝对路径 |
+| 16 | **手改 `~/.dsh/pet-settings.json` 切语言策略无效** —— 手写的 `rev` 会被判旧、被内存里的值覆盖 | 走插件自己的接口：`curl --noproxy '*' -X POST http://127.0.0.1:<port>/api/think-voice-pet/settings -d '{"speech":{"language":"zh"}}'`（返回 `{"ok":true,"rev":N,...}`） |
 
 ---
 
