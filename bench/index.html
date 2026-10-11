@@ -58,8 +58,17 @@ window.addEventListener('error', (ev) => fail('window.onerror', ev.error || ev.m
     report({ event: 'app', ok: true, rendererType: app.renderer && app.renderer.type, w: app.renderer && app.renderer.width });
   } catch (e) { fail('app', e); return; }
 
+  const QUERY = new URLSearchParams(location.search);
   // 帧率上限（真实浏览器 vsync 封顶 60；传 ?fps=0 为无上限，测极端上限）
-  const FPS_CAP = Number(new URLSearchParams(location.search).get('fps') || 0);
+  const FPS_CAP = Number(QUERY.get('fps') || 0);
+  /**
+   * 阶段 3：朗读态（P3-7）。`?speech=1` 才跑 —— **默认关，不改动既有 R-D 的基线**。
+   *
+   * 内容就是 P3-4 新增的每帧增量：读一次 1024 点波形求 RMS，再写一次嘴部参数。
+   * 音频源用振荡器（不放样音进库），所以这里测的是**口型驱动**的开销；
+   * 真正的 mp3 解码由浏览器在别的线程做，不进这个每帧预算。
+   */
+  const SPEECH = QUERY.get('speech') === '1';
   if (FPS_CAP > 0 && 'maxFPS' in app.ticker) {
     app.ticker.maxFPS = FPS_CAP;
     report({ event: 'fpscap', maxFPS: app.ticker.maxFPS });
@@ -103,15 +112,89 @@ window.addEventListener('error', (ev) => fail('window.onerror', ev.error || ev.m
     report(r);
   }
 
+  /**
+   * 阶段 3：朗读态（P3-7）。**照抄 P3-4 在真实 client 里的做法**，只把音源换成
+   * 振荡器（样音按约定不入库），其余逐条一致：
+   *
+   *   · AnalyserNode + `fftSize 1024` + `smoothingTimeConstant 0.55`
+   *   · 每帧 `getByteTimeDomainData` → RMS → `× 4.2` → 夹到 0..1
+   *   · 每帧把这个值写进 `ParamMouthOpenY`（按模型自己的 min/max 换算）
+   *
+   * ⚠️ 这几个常数**必须与 `lib/client.js` 保持一致**，否则测的就不是真实开销。
+   */
+  function speechPhase(model, onDone) {
+    let analyser = null;
+    let core = null;
+    let openAt = -1;
+    const samples = new Uint8Array(1024);
+    const SPEECH_GAIN = 4.2;   // == client.js
+
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.55;
+      osc.type = 'sine';
+      osc.frequency.value = 220;
+      // 几乎不出声：这里要的是"有波形可读"，不是听（headless 本来就听不到）
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(analyser);
+      analyser.connect(ctx.destination);
+      osc.start();
+      report({ event: 'speechAudio', ok: true, state: ctx.state });
+    } catch (e) { fail('speechAudio', e); }
+
+    try {
+      core = model && model.internalModel ? model.internalModel.coreModel : null;
+      const ids = core && core._model ? core._model.parameters.ids : null;
+      if (ids) {
+        for (let i = 0; i < ids.length; i += 1) {
+          if (ids[i] === 'ParamMouthOpenY') { openAt = i; break; }
+        }
+      }
+      report({ event: 'speechMouth', openAt });
+    } catch (e) { fail('speechMouth', e); }
+
+    // 每帧：读波形 → 写嘴（与 client.js 的帧循环同构）
+    app.ticker.add(() => {
+      let level = 0;
+      if (analyser !== null) {
+        try {
+          analyser.getByteTimeDomainData(samples);
+          let sum = 0;
+          for (let i = 0; i < samples.length; i += 1) {
+            const v = (samples[i] - 128) / 128;
+            sum += v * v;
+          }
+          level = Math.sqrt(sum / samples.length) * SPEECH_GAIN;
+          if (level > 1) level = 1;
+        } catch (e) { analyser = null; }
+      }
+      if (core !== null && openAt >= 0) {
+        const p = core._model.parameters;
+        p.values[openAt] = p.minimumValues[openAt]
+          + (p.maximumValues[openAt] - p.minimumValues[openAt]) * level * 0.65;
+      }
+    });
+
+    phaseStart('speech');
+    setTimeout(() => { phaseEnd('speech'); onDone(); }, 15000);
+  }
+
   // ---- 阶段 1：空舞台基线（仅 PIXI 渲染循环，无 Live2D）----
   phaseStart('baseline');
   setTimeout(async () => {
     phaseEnd('baseline');
 
     // ---- 阶段 2：装载真实 Live2D 模型 ----
+    // `model` 声明在 try 之外：阶段 3（朗读态）要用它写嘴部参数。
+    let model = null;
     try {
       if (V.extensions && V.Live2DPlugin) V.extensions.add(V.Live2DPlugin);
-      const model = await V.Live2DModel.from('/pets/ds-whale-girl/c_0120.model3.json', { autoInteract: false });
+      model = await V.Live2DModel.from('/pets/ds-whale-girl/c_0120.model3.json', { autoInteract: false });
       const nw = model.width, nh = model.height;          // 缩放前的原始尺寸
       const s = Math.min(480 / nw, 480 / nh);            // 恰好铺满画布，避免被裁剪影响测量
       model.anchor.set(0.5, 0.5);
@@ -128,8 +211,13 @@ window.addEventListener('error', (ev) => fail('window.onerror', ev.error || ev.m
         ? { usedMB: +(performance.memory.usedJSHeapSize / 1048576).toFixed(1),
             totalMB: +(performance.memory.totalJSHeapSize / 1048576).toFixed(1) }
         : null;
-      report({ event: 'done', memory: m, wall: Date.now() });
-      fetch('/dump', { method: 'POST', body: '1' });
+      const finish = () => {
+        report({ event: 'done', memory: m, wall: Date.now() });
+        fetch('/dump', { method: 'POST', body: '1' });
+      };
+      // 阶段 3 只在 ?speech=1 时跑；否则行为与改动前**逐字相同**（R-D 的基线不能动）
+      if (SPEECH) { speechPhase(model, finish); return; }
+      finish();
     }, 15000);
   }, 10000);
 })();
