@@ -8,7 +8,7 @@
 > | 更新时间 | 2026-10-11（D8 已拍 + 上游基线已入仓） |
 > | 工作区 / 仓库根 | `C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/`（**两者相同**，就地 `git init`） |
 > | 阶段 | P0 ✅ · P1 ✅ · **P2 ← 现在在这里** |
-> | HEAD | `main` @ `c124551`（merge：D8 落地 4 提交）· tag `v0.2-p1-scaffold-2026-10-11` |
+> | HEAD | `main`（**D8 + P2-1 均已合并**）· tag `v0.2-p1-scaffold-2026-10-11` · ⚠️ 本简报**不锁定哈希**（每次提交都回写不现实），要确切值用 `git log -1 --oneline` |
 > | 实现代码 | 上游基线 81 文件已入仓；**自有实现起步**：`lib/core/thinking-extractor.js`（P2-1）+ 26 例单测；`lib/infra` `lib/app` 仍为 0 行 |
 
 ---
@@ -41,7 +41,7 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | **134 文件 / 5.716 MB**；`.git` 约 1.2 MB；工作区总 110 MB（其余为不入库资产） |
-| 提交 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ 分支 `chore/import-upstream-baseline`（`2b78543` `f64f7ab` `0e21150` `fbc52bc`）→ merge `c124551` |
+| 提交链 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ **D8 落地**：分支 `chore/import-upstream-baseline`（`2b78543` `f64f7ab` `0e21150` `fbc52bc`）→ **P2-1**：分支 `feat/p2-thinking-extractor`（`27ddf45` `001ed1f` `0d42976`）。两次都用 `merge --no-ff`，分支历史保留 |
 | tag | `v0.1-baseline-2026-10-11`（P0 收口）· `v0.2-p1-scaffold-2026-10-11`（P1 骨架） |
 | 验收 | `<python> scripts/review/run_all.py` → **33 PASS / 0 FAIL / 1 SKIP / 2 INFO**（约 1m48s）；`--fast` → **23 PASS / 0 FAIL**（P2-1 落地后 S5 由 SKIP 变为实跑） |
 | 目录骨架 | `lib/`（上游 host+browser+desktop 半区）· `lib/core|infra|app`（各带职责 README）· `pets/`（美术）· `locale/` `src/` · `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
@@ -277,4 +277,5 @@ N1 不做"读回复全文" · N2 不做账号/云端同步 · N3 不训练/微�
 - [x] 跑一次 `<python> scripts/review/run_all.py --fast` → **22 PASS / 0 FAIL**（2026-10-11 交接时实测）
 - [x] 读 DESIGN §2 §4 §6 + PLAN §4 → 复述 P2 出口判据
 - [x] ~~拍板 D8~~ ✅ **已拍甲并落地**（§6）；另 D3 已定为 20s/句
-- [ ] ▶️ **开工 P2-1**：`git checkout -b feat/p2-thinking-extractor`，先读 §6.2 三条硬契约
+- [x] ~~开工 P2-1~~ ✅ **已完成**（`lib/core/thinking-extractor` + 26 单测 + 真实语料回放）
+- [ ] ▶️ **开工 P2-3**：`git checkout -b feat/p2-fragment-splitter`，先读 §6.2 三条硬契约与 §7 的「P2-1 复用点」
