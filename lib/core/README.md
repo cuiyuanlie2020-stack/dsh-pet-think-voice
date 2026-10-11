@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | `thinking-extractor` | `thinking-extractor.js` | 从会话事件提取 reasoning 原始文本 | `session event` → `string` | ✅ P2-1（26 例单测；真实语料 212/212 两通道一致） |
 | `fragment-splitter` | `fragment-splitter.js` | 长思考切成语义完整、适合朗读的小片段 | `string` → `Fragment[]` | ✅ P2-3（21 例；真实语料 0 超限 / 0 丢字） |
-| `interest-scorer` | `interest-scorer.js` | 片段"有趣度"打分（规则 + 可选小模型） | `Fragment` → `score 0..1` | ✅ P2-4 规则级；词表 **6 桶 / 66 词**（P4-1 两轮 + 2026-10-11 新增「手滑·坦白」12 词；实测口径见下）；含**子串陷阱**与**行内编号清单**守卫 |
+| `interest-scorer` | `interest-scorer.js` | 片段"有趣度"打分（规则 + 可选小模型） | `Fragment` → `score 0..1` | ✅ P2-4 规则级；词表 **6 桶 / 64 词**（P4-1 两轮 + 2026-10-11 新增「手滑·坦白」10 词，实测口径）；含**子串陷阱**与**行内编号清单**守卫 |
 | `reasoning-language` | `reasoning-language.js` | 思考语种：策略校验 / 注入文案 / 语种检测 / **音色解析（有状态）** | `policy` → resolver → `{voice, pitch, lang, reason}` | ✅ P3-0（21 例）。音色**由策略决定且会话内恒定** —— 绝不逐句切换（用户 2026-10-11 修正） |
 | `line-polisher` | `line-polisher.js` | 拟人化：清洗 + 裁齐 + 产出 `emotion` 标签 | `Fragment` + 打分结果 → `Line \| null` | ✅ P4-2（30 例）。🔴 **只挑只裁不改字**，被"输出是输入的子序列"不变量守着（DESIGN §5.2） |
 | `speech-planner` | `speech-planner.js` | 节流 / 去重 / 排队 / 频率闸 | `Line[]` → `SpeakTask[]` | ✅ P2-5（23 例） |
