@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D10 音色对比 · 英文思考该用什么声音念</title>
+<style>
+  :root{
+    --bg:#0f141f; --card:#171e2b; --card2:#1d2534; --line:#27303f;
+    --ink:#e8eefc; --dim:#9fb0cf; --faint:#6f809b;
+    --ok:#3ecf8e; --warn:#f2b53b; --bad:#f2604f; --accent:#6ea8ff;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f4f6fb; --card:#fff; --card2:#f7f9fd; --line:#e3e8f2;
+           --ink:#16202f; --dim:#5c6b84; --faint:#8b98ad; --accent:#2563eb; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:400 14px/1.65 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:32px 20px 64px}
+  h1{font-size:22px;margin:0 0 6px}
+  .sub{color:var(--dim);margin-bottom:22px}
+  .facts{background:var(--card);border:1px solid var(--line);border-radius:12px;
+         padding:16px 18px;margin-bottom:22px}
+  .facts h2{font-size:14px;margin:0 0 10px;color:var(--accent)}
+  .facts ul{margin:0;padding-left:20px;color:var(--dim)}
+  .facts b{color:var(--ink)}
+  .facts .hl{color:var(--warn)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:14px 16px;margin-bottom:12px}
+  .hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .name{font-weight:600;font-size:15px}
+  .mono{font:400 12px/1.5 ui-monospace,Consolas,monospace;color:var(--faint)}
+  .badge{font-size:11px;padding:1px 7px;border-radius:20px;border:1px solid var(--line);
+         color:var(--dim)}
+  .badge.cur{border-color:var(--warn);color:var(--warn)}
+  .badge.cand{border-color:var(--ok);color:var(--ok)}
+  .badge.no{border-color:var(--bad);color:var(--bad)}
+  .note{color:var(--faint);font-size:12px;margin:2px 0 10px}
+  .row{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:center;
+       padding:6px 0;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .tag{font-size:12px;color:var(--dim)}
+  audio{width:100%;height:34px}
+  .dead{color:var(--bad);font-size:12px}
+  code{background:var(--card2);border:1px solid var(--line);border-radius:5px;
+       padding:1px 5px;font:400 12px/1.5 ui-monospace,Consolas,monospace}
+  pre{background:var(--card2);border:1px solid var(--line);border-radius:9px;
+      padding:12px 14px;overflow:auto;color:var(--dim);font-size:12.5px}
+  .foot{margin-top:26px;color:var(--faint);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>D10 · 英文思考该用什么声音念</h1>
+  <div class="sub">同一句话，不同音色。听完就能定 D10。</div>
+
+  <div class="facts">
+    <h2>为什么会有这个问题（实测数据，非猜测）</h2>
+    <ul>
+      <li>212 条真实思考里，<b>英文主导 76%</b>、中文主导仅 7%；整批字符 <b>ASCII 67.3% / 中文 5.2%</b>。</li>
+      <li>过筛选阈值后的 360 条「可念片段」里，<b class="hl">中文主导只有 15 条（4.2%）</b>。</li>
+      <li>⇒ 「只念中文片段」等于每条思考平均只有 <b>0.07 条</b>素材，宠物会几乎不说话，<b class="hl">该选项已被数据否掉</b>。</li>
+      <li>而且思考语种<b>改不了</b>：中文提问只有 2.4% 得到中文思考；四组强制系统提示（含"Always reason in Chinese."）实测中文占比仍只有 0.15~0.33。<br>
+          换模型也不行——<code>deepseek-flash</code> 与本地 <code>qwen3.8-27b</code> 都是 ~97% 英文。</li>
+      <li>结论：<b>音色必须能念英文</b>，问题只剩"怎么念得好"。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <span class="name">现行设计</span>
+      <span class="mono">zh-CN-XiaoyiNeural · pitch +30Hz</span>
+      <span class="badge cur">现行</span>
+    </div>
+    <div class="note">当年选它的前提是"思考是中文"。听下面第二条——中文音色念英文的味道就是问题所在。</div>
+    <div class="row"><span class="tag">中文</span><audio controls src="d10_zh-xiaoyi-p30_zh.mp3"></audio></div>
+    <div class="row"><span class="tag">英文</span><audio controls src="d10_zh-xiaoyi-p30_en.mp3"></audio></div>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <span class="name">Ava（多语言）</span>
+      <span class="mono">en-US-AvaMultilingualNeural</span>
+      <span class="badge cand">候选</span>
+    </div>
+    <div class="note">Edge 实际提供 12 个多语言音色（用官方音色表查证过）。一个音色中英通吃，就不用做双音色切换。</div>
+    <div class="row"><span class="tag">中文</span><audio controls src="d10_multi-ava_zh.mp3"></audio></div>
+    <div class="row"><span class="tag">英文</span><audio controls src="d10_multi-ava_en.mp3"></audio></div>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <span class="name">Ava + 抬调</span>
+      <span class="mono">en-US-AvaMultilingualNeural · pitch +30Hz</span>
+      <span class="badge cand">候选</span>
+    </div>
+    <div class="note">如果想保留原设计那点"少女感"，就在多语言音色上继续抬调。</div>
+    <div class="row"><span class="tag">中文</span><audio controls src="d10_multi-ava-p30_zh.mp3"></audio></div>
+    <div class="row"><span class="tag">英文</span><audio controls src="d10_multi-ava-p30_en.mp3"></audio></div>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <span class="name">Emma（多语言）</span>
+      <span class="mono">en-US-EmmaMultilingualNeural</span>
+      <span class="badge cand">候选</span>
+    </div>
+    <div class="note">与 Ava 同为多语言女声，音色取向略有不同，可二选一。</div>
+    <div class="row"><span class="tag">中文</span><audio controls src="d10_multi-emma_zh.mp3"></audio></div>
+    <div class="row"><span class="tag">英文</span><audio controls src="d10_multi-emma_en.mp3"></audio></div>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <span class="name">Ana（英文童声）</span>
+      <span class="mono">en-US-AnaNeural</span>
+      <span class="badge no">不可用</span>
+    </div>
+    <div class="note">Edge 唯一的 child voice，念英文很萌——但它<b>完全念不了中文</b>：同一句中文合成出来是 <b>0 字节</b>。</div>
+    <div class="row"><span class="tag">中文</span><span class="dead">✗ 合成为 0 字节（该音色不支持中文）</span></div>
+    <div class="row"><span class="tag">英文</span><audio controls src="d10_en-ana_en.mp3"></audio></div>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <span class="name">Xiaoxiao（对照）</span>
+      <span class="mono">zh-CN-XiaoxiaoNeural</span>
+      <span class="badge">对照</span>
+    </div>
+    <div class="note">另一个中文女声，用来确认"中文音色念英文都别扭"不是 Xiaoyi 独有的问题。</div>
+    <div class="row"><span class="tag">中文</span><audio controls src="d10_zh-xiaoxiao_zh.mp3"></audio></div>
+    <div class="row"><span class="tag">英文</span><audio controls src="d10_zh-xiaoxiao_en.mp3"></audio></div>
+  </div>
+
+  <div class="foot">
+    <p>样音不入库（<code>.gitignore</code> 里的 <code>tts-demo/*.mp3</code>）。要重新生成：</p>
+    <pre>node tts-demo/gen_d10_voices.mjs</pre>
+    <p>文本是合成的，不是真实会话内容。采样率 24kHz / 48kbps 单声道 —— 与插件实际使用的输出格式一致。</p>
+  </div>
+</div>
+</body>
+</html>

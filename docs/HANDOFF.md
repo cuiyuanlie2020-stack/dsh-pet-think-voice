@@ -43,10 +43,10 @@
 | 仓库 | **134 文件 / 5.716 MB**；`.git` 约 1.2 MB；工作区总 110 MB（其余为不入库资产） |
 | 提交链 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ **D8 落地**：分支 `chore/import-upstream-baseline`（`2b78543` `f64f7ab` `0e21150` `fbc52bc`）→ **P2-1**：分支 `feat/p2-thinking-extractor`（`27ddf45` `001ed1f` `0d42976`）。两次都用 `merge --no-ff`，分支历史保留 |
 | tag | `v0.1-baseline-2026-10-11`（P0 收口）· `v0.2-p1-scaffold-2026-10-11`（P1 骨架） |
-| 验收 | 完整 `<python> scripts/review/run_all.py` → **34 PASS / 0 FAIL / 0 SKIP / 2 INFO**（约 1m30s）；`--fast` → **23 PASS / 0 FAIL**；S5 单测 **6 文件 / 119 例全绿** |
+| 验收 | 完整 `<python> scripts/review/run_all.py` → **34 PASS / 0 FAIL / 0 SKIP / 2 INFO**（约 1m30s）；`--fast` → **23 PASS / 0 FAIL**；S5 单测 **6 文件 / 120 例全绿** |
 | 目录骨架 | `lib/`（上游 host+browser+desktop 半区）· `lib/core|infra|app`（各带职责 README）· `pets/`（美术）· `locale/` `src/` · `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
 | 上游基线 | `A8Chann/dsh-pet-live2d` @ `33af354`（2026-10-10），插件版本 3.3.1 → 已改名为 `dsh-pet-think-voice` |
-| **P2 进度** | **P2-1 ~ P2-6 代码全部 ✅**；单测 119 例全绿；真 DSH 宿主上两条通道订阅成功。⚠️ **唯一遗留：真实 GUI 回合的气泡验收**（见 §7 末尾） |
+| **P2 进度** | **P2-1 ~ P2-6 代码全部 ✅**；单测 120 例全绿；真 DSH 宿主上两条通道订阅成功。✅ **含 GUI 验收**（2026-10-11 用 agent-browser 在真 GUI 上跑通，三重证据见 §7） |
 | 规则形态 | **仓库根级 `CODEBUDDY.md`**（不写 `paths`，覆盖整子树）——机制已由引擎代码核实 |
 | 探针证据 | `p0/out/probe.log`（V1 运行时闭环，**已被 gitignore，不入库**，本机还在盘上） |
 | P2 语料 | `~/.dsh/sessions/**/session.v4.jsonl.zstd`（**27 个**；其中就有本工作区的会话目录） |
@@ -229,16 +229,28 @@ DESIGN §8.2 要求「上游 `LICENSE` + `NOTICE.md` **原样保留不可改写*
 | P2-3 | `FragmentSplitter` ✅ **已完成** | `lib/core/fragment-splitter.js` + 单测 | **21 例全绿**；真实语料：4714 片段、**超上限 0 / 不丢字 0** | ✅ 单测全绿 | ✅ |
 | P2-4 | `InterestScorer`（**仅规则级**） ✅ **已完成** | `lib/core/interest-scorer.js` + 词表 + 单测 | **19 例全绿**；⚠️ 实测推翻 DESIGN §5.1 词表（中文触发 0 次）→ 改双语 | ✅ 单测全绿 | ✅ |
 | P2-5 | `SpeechPlanner`（仅节流/去重） ✅ **已完成** | `lib/core/speech-planner.js` + 单测 | **23 例全绿**；20s 频率闸（D3）+ 去重 + 队列溢出丢最差 | ✅ 单测全绿 | ✅ |
-| P2-6 | SSE 下发 + 气泡显示 ⚠️ **代码完成，GUI 验收未做** | `lib/index.js`（`speak` 帧 + `broadcast`）+ `lib/client.js`（气泡） | ⚠️ 产出逻辑与 SSE 推帧已验；"真实回合看到气泡"需 GUI，未做（见下） | ✅ 相位提示逻辑未动 | ✅ |
+| P2-6 | SSE 下发 + 气泡显示 ✅ **已完成（含 GUI 验收）** | `lib/index.js`（`speak` 帧 + `broadcast`）+ `lib/client.js`（气泡） | ✅ **真机三重证据**（见下）：宿主日志 / SSE 线上帧 / 浏览器 DOM 捕获到气泡原文 | ✅ 相位帧形状未变、相位提示正常 | ✅ |
 
-**P2 状态**：代码全部完成。**唯一遗留 = 真实 GUI 回合的气泡验收**。
+**P2 状态**：✅ **全部完成并验收，无遗留**（2026-10-11 用 agent-browser 在真 GUI 上补验）。
 
-> 🔴 **为什么没做**：`agent-browser` 需要全局装包 + 下载约 500MB Chromium（**属环境变更，未擅自执行**）；
-> 而 web profile 的 `/api` 有 token 围栏，纯 curl 驱动不了"发一条消息"。
-> **两条路径**：① 批准装 `agent-browser` 后我来跑 ② **你在自己的 DSH GUI 里挂 §5 那个叠加层跑一轮**（最快）。
+> ✅ **P2-6 真机三重证据**（缺一都不算验过）：
+> 1. **宿主日志**：`思考流水线：channel=realtime 片段=98 过阈=7 入队=7 最高分=0.81/阈值0.5` → `朗读一条（score=0.81）：Or just ask in prose…`（同轮 5 条，分数 0.81/0.6/0.57/0.54/0.54）
+> 2. **SSE 线上帧**：`data: {"type":"speak","payload":{"text":"Should I actually go investigate?","audioUrl":null,"emotion":null}}`
+>    且**老相位帧形状未变**（`{"phase":"queued",…}` / `{"phase":"tool","detail":"ask_user_question",…}`）
+> 3. **浏览器 DOM**：用 MutationObserver 抓到气泡真实渲染出的原文
+>    （`and they say "if I guessed wrong please correct me directly" — actually they haven't given their guess… Hmm`）
 >
-> ⚠️ 顺带确认：**headless profile 跑不了本插件** —— `inject = ['webServer']` 会让它一直 `pending`，
-> 因为思考采集最终要靠 SSE 把结果送到浏览器。**验证必须用 `web` profile。**
+> ⚠️ **顺带修掉一个真缺陷**：第一次真机跑时日志一条都没有，看着像"订阅没生效"，
+> 但查会话日志那轮其实有 **657 字**思考。根因是我把「没过阈」记成 debug 级、宿主又把 debug 丢了
+> —— 「接上了但没选中」与「压根没接上」在日志上长得一模一样（违反 R3 留痕）。
+> 现已一律 info，并在 detail 里带上**最高分与阈值**（否则看不出是词表没中还是阈值太高）。
+>
+> ⚠️ **headless profile 跑不了本插件**：`inject = ['webServer']` 会让它一直 `pending`。**验证必须用 `web` profile。**
+>
+> 📌 **验完的 GUI 操作要点**（省下次摸索）：`--patch` 放 `--profile` 前 → `agent-browser open <带 token 的 URL>`
+> → 首次会有"预览版说明"弹窗点"继续" → `type` 输入 → **`focus` + `press Enter` 才能发送**
+> （直接点发送按钮无效，文本会留在框里）→ 用 `eval` 装 MutationObserver 抓瞬态气泡
+> （气泡只显示 4~15 秒，采样时机很容易错过）。
 
 **P2 的复用点**：领域层四个模块都是纯函数/注入时钟，可直接复用；`lib/app/thinking-pipeline.js` 的 `ingest` 目前用同步 `scoreSync`，到 P4-4 换异步小模型时需整体改 async。
 
@@ -295,7 +307,7 @@ N1 不做"读回复全文" · N2 不做账号/云端同步 · N3 不训练/微�
 - [x] 读 DESIGN §2 §4 §6 + PLAN §4 → 复述 P2 出口判据
 - [x] ~~拍板 D8~~ ✅ **已拍甲并落地**（§6）；另 D3 已定为 20s/句
 - [x] ~~开工 P2-1~~ ✅ **已完成**（`lib/core/thinking-extractor` + 26 单测 + 真实语料回放）
-- [x] ~~做完 P2~~ ✅ **P2-1 ~ P2-6 代码全部完成**（单测 119 例全绿；真 DSH 上两通道订阅成功）
+- [x] ~~做完 P2~~ ✅ **P2-1 ~ P2-6 代码全部完成**（单测 120 例全绿；真 DSH 上两通道订阅成功）
 - [ ] ⚠️ **P2 遗留：真实 GUI 回合的气泡验收**（路径见 §7 末尾）
 - [ ] ▶️ **拍 D10**（英文思考用什么音色）—— **不拍不要开 P3-1**，否则音色选型要返工
 - [ ] ▶️ 进 **P3 语音打通**：`git checkout -b feat/p3-tts`，先读 §6.2 三条硬契约
