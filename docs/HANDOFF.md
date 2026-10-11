@@ -43,10 +43,10 @@
 | 仓库 | **134 文件 / 5.716 MB**；`.git` 约 1.2 MB；工作区总 110 MB（其余为不入库资产） |
 | 提交链 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ **D8 落地**：分支 `chore/import-upstream-baseline`（`2b78543` `f64f7ab` `0e21150` `fbc52bc`）→ **P2-1**：分支 `feat/p2-thinking-extractor`（`27ddf45` `001ed1f` `0d42976`）。两次都用 `merge --no-ff`，分支历史保留 |
 | tag | `v0.1-baseline-2026-10-11`（P0 收口）· `v0.2-p1-scaffold-2026-10-11`（P1 骨架） |
-| 验收 | 完整 `<python> scripts/review/run_all.py` → **34 PASS / 0 FAIL / 0 SKIP / 2 INFO**（约 1m30s）；`--fast` → **23 PASS / 0 FAIL**；S5 单测 **6 文件 / 149 例全绿** |
+| 验收 | 完整 `<python> scripts/review/run_all.py` → **34 PASS / 0 FAIL / 0 SKIP / 2 INFO**（约 1m30s）；`--fast` → **23 PASS / 0 FAIL**；S5 单测 **6 文件 / 119 例全绿** |
 | 目录骨架 | `lib/`（上游 host+browser+desktop 半区）· `lib/core|infra|app`（各带职责 README）· `pets/`（美术）· `locale/` `src/` · `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
 | 上游基线 | `A8Chann/dsh-pet-live2d` @ `33af354`（2026-10-10），插件版本 3.3.1 → 已改名为 `dsh-pet-think-voice` |
-| **P2 进度** | **P2-1 ~ P2-6 代码全部 ✅**；单测 149 例全绿；真 DSH 宿主上两条通道订阅成功。⚠️ **唯一遗留：真实 GUI 回合的气泡验收**（见 §7 末尾） |
+| **P2 进度** | **P2-1 ~ P2-6 代码全部 ✅**；单测 119 例全绿；真 DSH 宿主上两条通道订阅成功。⚠️ **唯一遗留：真实 GUI 回合的气泡验收**（见 §7 末尾） |
 | 规则形态 | **仓库根级 `CODEBUDDY.md`**（不写 `paths`，覆盖整子树）——机制已由引擎代码核实 |
 | 探针证据 | `p0/out/probe.log`（V1 运行时闭环，**已被 gitignore，不入库**，本机还在盘上） |
 | P2 语料 | `~/.dsh/sessions/**/session.v4.jsonl.zstd`（**27 个**；其中就有本工作区的会话目录） |
@@ -295,7 +295,7 @@ N1 不做"读回复全文" · N2 不做账号/云端同步 · N3 不训练/微�
 - [x] 读 DESIGN §2 §4 §6 + PLAN §4 → 复述 P2 出口判据
 - [x] ~~拍板 D8~~ ✅ **已拍甲并落地**（§6）；另 D3 已定为 20s/句
 - [x] ~~开工 P2-1~~ ✅ **已完成**（`lib/core/thinking-extractor` + 26 单测 + 真实语料回放）
-- [x] ~~做完 P2~~ ✅ **P2-1 ~ P2-6 代码全部完成**（单测 149 例全绿；真 DSH 上两通道订阅成功）
+- [x] ~~做完 P2~~ ✅ **P2-1 ~ P2-6 代码全部完成**（单测 119 例全绿；真 DSH 上两通道订阅成功）
 - [ ] ⚠️ **P2 遗留：真实 GUI 回合的气泡验收**（路径见 §7 末尾）
 - [ ] ▶️ **拍 D10**（英文思考用什么音色）—— **不拍不要开 P3-1**，否则音色选型要返工
 - [ ] ▶️ 进 **P3 语音打通**：`git checkout -b feat/p3-tts`，先读 §6.2 三条硬契约

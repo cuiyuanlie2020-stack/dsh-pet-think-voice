@@ -9,7 +9,7 @@
 > | 状态      | ✅ **P1 已完成** + ✅ **D8 已落地** + ✅ **P2 已完成**（P2-1~P2-6 代码全绿；余一项真实 GUI 回合验收）                                                                                                                                         |
 > | 总原则     | **先验风险，再搭骨架，最后写功能；每阶段用资源阈值卡验收**                                                                                                                                                                                |
 > | 当前阻塞    | **无**。⚠️ 但 **P3 开工前必须先拍 D10**（实测思考主体是英文，原中文音色方案动摇）                                                                                                                                                                      |
-> | 相对 v0.5 | ⑩ **P2 全部落地**：`lib/core` 四个模块（thinking-extractor / fragment-splitter / interest-scorer / speech-planner）+ `lib/app/thinking-pipeline` + 入口接线（`attachThinkingEvents` / `ActivityHub.broadcast` / client 气泡），单测 149 例全绿；⑪ **两条实测推翻 DESIGN 旧前提**——思考主体是英文（76%）、原中文情绪词表触发 0 次 → 词表改双语、阈值重校，并新增 **D10**；⑫ 唯一遗留：真实 GUI 回合的气泡验收（见 §4 末尾） |
+> | 相对 v0.5 | ⑩ **P2 全部落地**：`lib/core` 四个模块（thinking-extractor / fragment-splitter / interest-scorer / speech-planner）+ `lib/app/thinking-pipeline` + 入口接线（`attachThinkingEvents` / `ActivityHub.broadcast` / client 气泡），单测 119 例全绿；⑪ **两条实测推翻 DESIGN 旧前提**——思考主体是英文（76%）、原中文情绪词表触发 0 次 → 词表改双语、阈值重校，并新增 **D10**；⑫ 唯一遗留：真实 GUI 回合的气泡验收（见 §4 末尾） |
 
 ---
 
@@ -268,13 +268,13 @@ P5 发布准备          合规 / README / 署名 / 打包 / 低配实测
 | **统一验收入口**       | ✅ `scripts/review/run_all.py` —— `--fast` 秒级静态；默认含 4 组资源探针（约 1m48s）                                                                |       |                                                |
 | **上游基线（D8 落地）**  | ✅ `A8Chann/dsh-pet-live2d` @ `33af354` / v3.3.1 已复制入仓并改名 **`dsh-pet-think-voice`**；入库 134 文件 / 5.716MB（阈值 10MB）                    |       |                                                |
 | 改名硬契约            | ✅ 已核对：包名三方一致（`package.json#name` = `__ModuleLoader__` id = `PACKAGE_NAME`）· row id 双方一致 · 路由前缀两侧一致（6 条路由全挂 `/api/think-voice-pet`） |       |                                                |
-| 实现代码             | ✅ **自有实现已落地**：`lib/core` 四个领域模块 + `lib/app/thinking-pipeline` + 入口接线；单测 149 例全绿（核心层可脱离 DSH 单独跑） |
+| 实现代码             | ✅ **自有实现已落地**：`lib/core` 四个领域模块 + `lib/app/thinking-pipeline` + 入口接线；单测 119 例全绿（核心层可脱离 DSH 单独跑） |
 | `PROJECT-MAP.md` | ⏸️ 待代码落地后按规范补（规范要求"核对代码得出"）                                                                                                        |       |                                                |
 | `OPS-RUNBOOK.md` | ⏸️ 待有运行物                                                                                                                           |       |                                                |
 | 项目名（D1）          | ✅ **`dsh-pet-think-voice`**（npm 404 / GitHub 0 结果）                                                                                 |       |                                                |
 | 探针使用说明           | ✅ `p0/probe-plugin/README.md`；日志判读器 `p0/probe-log-summary.py`（退出码 0=闭环/2=无思考/3=通道没通）                                               |       |                                                |
 | **P1 项目骨架**      | ✅ **已完成**（P1-1 ~ P1-7 全绿）                                                                                                          |       |                                                |
-| **P2 最小闭环**      | ✅ **代码全部完成**：P2-1 提取 / P2-3 切分 / P2-4 打分 / P2-5 节流 + P2-2 编排 / P2-6 SSE 与气泡；单测 149 例全绿。⚠️ 仅余"真实 GUI 回合看到气泡"未验（见 §4 末尾） |       |                                                |
+| **P2 最小闭环**      | ✅ **代码全部完成**：P2-1 提取 / P2-3 切分 / P2-4 打分 / P2-5 节流 + P2-2 编排 / P2-6 SSE 与气泡；单测 119 例全绿。⚠️ 仅余"真实 GUI 回合看到气泡"未验（见 §4 末尾） |       |                                                |
 | **改名硬契约**      | ✅ 三条契约均有单测守着（`lib/index.test.js`）：row id = `think-voice-pet`、路由前缀 = `/api/think-voice-pet` |       |                                                |
 | **git 基线**       | ✅ `main`（D8 + P2-1 已合并）· tag `v0.1-baseline-2026-10-11` · 具体哈希以 `git log -1` 为准 |
 | **交接简报**         | ✅ [`docs/HANDOFF.md`](./HANDOFF.md) —— 新会话接手先读它（30 秒版 / 契约 / 命令 / 坑 / P2 任务书 / **§6 D8 落地与三条改名硬契约**）                               |       |                                                |
