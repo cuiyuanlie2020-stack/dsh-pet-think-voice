@@ -1,0 +1,3 @@
+- insert:
+    - id: inject-probe
+      name: 'file:///C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/p0/inject-probe/index.js'
