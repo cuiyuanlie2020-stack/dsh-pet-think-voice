@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Live2D 开销测试台</title>
+<style>
+  html,body{margin:0;padding:0;background:#0d1117;overflow:hidden}
+  canvas{display:block}
+  #err{position:fixed;left:0;top:0;max-width:100%;color:#ff7b72;font:11px/1.4 monospace;
+       white-space:pre-wrap;z-index:9;background:rgba(0,0,0,.6);padding:4px}
+  #hud{position:fixed;right:4px;bottom:4px;color:#7ee787;font:11px monospace;z-index:9}
+</style>
+</head>
+<body>
+<div id="err"></div>
+<div id="hud"></div>
+
+<script src="/cubism/live2dcubismcore.min.js"></script>
+<script src="/lib/live2d-vendor.js"></script>
+<script>
+const HUD = document.getElementById('hud');
+function report(o) {
+  try { fetch('/report', { method: 'POST', body: JSON.stringify(o) }); } catch (e) {}
+}
+function fail(where, e) {
+  document.getElementById('err').textContent += where + ': ' + ((e && (e.stack || e.message)) || e) + '\n';
+  report({ event: 'error', where, msg: String((e && (e.message || e)) || e) });
+}
+window.addEventListener('error', (ev) => fail('window.onerror', ev.error || ev.message));
+
+(async () => {
+  const V = window.__dshLive2dPetVendor;
+  report({ event: 'vendor', present: !!V, keys: V ? Object.keys(V) : null, cubism: !!window.Live2DCubismCore });
+  if (!V) { fail('vendor', 'window.__dshLive2dPetVendor 未定义'); return; }
+
+  // 校验 WebGL 是否走真 GPU（而非 SwiftShader 软渲染）
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    report({
+      event: 'gl',
+      renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+      vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : '',
+      version: gl.getParameter(gl.VERSION),
+    });
+  } catch (e) { fail('gl', e); }
+
+  let app = null;
+  try {
+    app = new V.Application();
+    if (typeof app.init === 'function') {
+      await app.init({ width: 480, height: 480, backgroundAlpha: 0, antialias: true, preference: 'webgl', autoStart: true });
+    } else {
+      app = new V.Application({ width: 480, height: 480, backgroundAlpha: 0, antialias: true, autoStart: true });
+    }
+    document.body.appendChild(app.canvas);
+    report({ event: 'app', ok: true, rendererType: app.renderer && app.renderer.type, w: app.renderer && app.renderer.width });
+  } catch (e) { fail('app', e); return; }
+
+  // 帧率上限（真实浏览器 vsync 封顶 60；传 ?fps=0 为无上限，测极端上限）
+  const FPS_CAP = Number(new URLSearchParams(location.search).get('fps') || 0);
+  if (FPS_CAP > 0 && 'maxFPS' in app.ticker) {
+    app.ticker.maxFPS = FPS_CAP;
+    report({ event: 'fpscap', maxFPS: app.ticker.maxFPS });
+  }
+
+  let frames = 0, t0 = 0;
+  // 每帧 CPU 工作量：在 ticker 最前/最后各插一个计时器，夹住整条回调链（含引擎 update + render）
+  let frameWorkMs = 0, frameWorkMax = 0, fSamples = [];
+  let _t = 0;
+  app.ticker.add(() => { _t = performance.now(); }, null, 1e6);
+  app.ticker.add(() => {
+    const d = performance.now() - _t;
+    frameWorkMs += d;
+    if (d > frameWorkMax) frameWorkMax = d;
+    if (fSamples.length < 40000) fSamples.push(d);
+  }, null, -1e6);
+  app.ticker.add(() => { frames++; });
+
+  function p95(arr) {
+    if (!arr.length) return 0;
+    const s = arr.slice().sort((a, b) => a - b);
+    return s[Math.min(s.length - 1, Math.floor(s.length * 0.95))];
+  }
+
+  function phaseStart(name) {
+    t0 = performance.now();
+    frames = 0;
+    frameWorkMs = 0; frameWorkMax = 0; fSamples = [];
+    report({ event: 'phase', name, t: +t0.toFixed(1), wall: Date.now() });
+  }
+  function phaseEnd(name) {
+    const d = (performance.now() - t0) / 1000;
+    const r = {
+      event: 'phaseResult', name, seconds: +d.toFixed(2), frames,
+      fps: +(frames / d).toFixed(1),
+      frameWorkAvgMs: +(frameWorkMs / Math.max(1, frames)).toFixed(3),
+      frameWorkP95Ms: +p95(fSamples).toFixed(3),
+      frameWorkMaxMs: +frameWorkMax.toFixed(2),
+    };
+    HUD.textContent = name + ': ' + r.fps + ' fps / ' + r.frameWorkAvgMs + ' ms·帧';
+    report(r);
+  }
+
+  // ---- 阶段 1：空舞台基线（仅 PIXI 渲染循环，无 Live2D）----
+  phaseStart('baseline');
+  setTimeout(async () => {
+    phaseEnd('baseline');
+
+    // ---- 阶段 2：装载真实 Live2D 模型 ----
+    try {
+      if (V.extensions && V.Live2DPlugin) V.extensions.add(V.Live2DPlugin);
+      const model = await V.Live2DModel.from('/pets/ds-whale-girl/c_0120.model3.json', { autoInteract: false });
+      const nw = model.width, nh = model.height;          // 缩放前的原始尺寸
+      const s = Math.min(480 / nw, 480 / nh);            // 恰好铺满画布，避免被裁剪影响测量
+      model.anchor.set(0.5, 0.5);
+      model.position.set(240, 240);
+      model.scale.set(s);
+      app.stage.addChild(model);
+      report({ event: 'model', ok: true, nativeW: +nw.toFixed(1), nativeH: +nh.toFixed(1), scale: +s.toFixed(4) });
+    } catch (e) { fail('model', e); }
+
+    phaseStart('live2d');
+    setTimeout(() => {
+      phaseEnd('live2d');
+      const m = performance.memory
+        ? { usedMB: +(performance.memory.usedJSHeapSize / 1048576).toFixed(1),
+            totalMB: +(performance.memory.totalJSHeapSize / 1048576).toFixed(1) }
+        : null;
+      report({ event: 'done', memory: m, wall: Date.now() });
+      fetch('/dump', { method: 'POST', body: '1' });
+    }, 15000);
+  }, 10000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-think-probe
+      name: '@local/dsh-think-probe'

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>最终音色 · 思考台词试听</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --fg:#1a1d21; --sub:#6b7280;
+    --line:#e5e7eb; --accent:#ff5c8a; --accent2:#7c5cff; --ok:#0f9d58;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14161a; --card:#1c1f24; --fg:#e8eaed; --sub:#9aa0a6;
+           --line:#2b2f36; --accent:#ff7aa2; --accent2:#a78bfa; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 20px 64px;background:var(--bg);color:var(--fg);
+       font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  .wrap{max-width:880px;margin:0 auto}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;
+         background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);
+         padding:4px 12px;border-radius:99px;margin-bottom:12px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  .lead{color:var(--sub);font-size:14px;margin:0 0 8px}
+  .cfg{font-size:13px;color:var(--sub);margin:0 0 26px;font-variant-numeric:tabular-nums}
+  .cfg code{background:color-mix(in srgb,var(--sub) 14%,transparent);padding:2px 7px;border-radius:6px;font-size:12.5px}
+  .row{background:var(--card);border:1px solid var(--line);border-radius:14px;
+       padding:15px 18px;margin-bottom:12px;display:flex;align-items:center;gap:16px;
+       box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .idx{width:26px;height:26px;flex:0 0 26px;border-radius:50%;display:grid;place-items:center;
+       font-size:12.5px;font-weight:700;background:color-mix(in srgb,var(--accent2) 16%,transparent);color:var(--accent2)}
+  .meta{flex:1;min-width:0}
+  .txt{font-size:14.5px;font-weight:550}
+  .hint{color:var(--sub);font-size:12px;margin-top:2px}
+  audio{width:280px;max-width:42vw;height:36px}
+  .note{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:18px 20px;margin-top:22px;font-size:13.5px;color:var(--sub)}
+  .note h2{font-size:15px;margin:0 0 10px;color:var(--fg)}
+  .note ul{margin:0;padding-left:20px}
+  .note li{margin:5px 0}
+  @media(max-width:600px){ .row{flex-wrap:wrap} audio{width:100%;max-width:100%} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="badge">✅ 音色已定稿</div>
+  <h1>思考台词试听</h1>
+  <p class="lead">贴近插件真实场景的思考片段（中英混读 + 语气词），用最终音色合成。</p>
+  <p class="cfg">引擎：Edge TTS &nbsp;·&nbsp; 音色：<code>zh-CN-XiaoyiNeural</code>（晓伊）&nbsp;·&nbsp; 参数：<code>pitch=+30Hz</code></p>
+
+  <div class="row">
+    <div class="idx">1</div>
+    <div class="meta"><div class="txt">等等，这个正则怎么写都不对，我是不是把方向搞反了？</div>
+      <div class="hint">自我怀疑 · 犹豫</div></div>
+    <audio controls preload="none" src="line1.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="idx">2</div>
+    <div class="meta"><div class="txt">哦——原来 param 是必填的，难怪一直报 undefined。</div>
+      <div class="hint">顿悟 · 中英混读（param / undefined）</div></div>
+    <audio controls preload="none" src="line2.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="idx">3</div>
+    <div class="meta"><div class="txt">powersell 又想咬我了，这已经是第三次了。</div>
+      <div class="hint">吐槽 · 原台词</div></div>
+    <audio controls preload="none" src="line3.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="idx">4</div>
+    <div class="meta"><div class="txt">嗯……这个 bug 藏得真深，我绕了一大圈才找到。</div>
+      <div class="hint">感叹 · 中英混读（bug）</div></div>
+    <audio controls preload="none" src="line4.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="idx">5</div>
+    <div class="meta"><div class="txt">好，思路清晰了，let me 把这个 function 重写一下。</div>
+      <div class="hint">收束 · 中英混读（let me / function）</div></div>
+    <audio controls preload="none" src="line5.mp3"></audio>
+  </div>
+
+  <div class="note">
+    <h2>为什么选 +30Hz</h2>
+    <ul>
+      <li>+50Hz 抬高过度会有轻微"电音"失真感；+30Hz 更自然。</li>
+      <li>音色偏日系动漫少女腔，契合社区鲸鱼娘的原创形象。</li>
+      <li>中英混读（param / undefined / bug / function）由同一条中文音色读，不切换声线，听感统一。</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

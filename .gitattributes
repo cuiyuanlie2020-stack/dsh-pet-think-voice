@@ -1,0 +1,27 @@
+# 仓库内统一 LF 存储，检出时按平台换行；二进制资产永不转换。
+# 对齐上游 dsh-pet-live2d 的约定（本项目为其衍生开发）。
+* text=auto eol=lf
+
+# 二进制资产 —— 绝不参与换行转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.moc3 binary
+*.mp3 binary
+*.wav binary
+*.onnx binary
+*.bin binary
+
+# Live2D 配置类 JSON 保持文本（便于 diff）
+*.exp3.json text eol=lf
+*.motion3.json text eol=lf
+*.physics3.json text eol=lf
+*.cdi3.json text eol=lf
+
+# 文档与配置保持可读
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

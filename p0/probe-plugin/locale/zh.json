@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "思考探针（P0）",
+    "description": "验证 Host 插件能否从会话事件里读到模型的思考原文（reasoning）。只写日志，无界面。"
+  }
+}

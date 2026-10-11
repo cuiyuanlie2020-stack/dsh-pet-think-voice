@@ -1,0 +1,72 @@
+# ═══════════════════════════════════════════════════════════════
+# dsh-pet-think-voice — 排除清单
+# 原则：只纳入「源码 / 文档 / 可复现的测量脚本」，其余一律排除。
+# ⚠️ .gitignore 不支持行尾注释 —— 注释必须独立成行。
+# ═══════════════════════════════════════════════════════════════
+
+# ── 密钥（绝不入库）──
+.env
+*.env
+!.env.example
+*.pem
+*.key
+
+# ── 上游参考仓库（自带 .git，只能以「只读参考」存在）──
+# 上游 dsh-pet-live2d。Fork 后是本项目血缘来源，但绝不纳入本仓。
+vendor/
+
+# ── WorkBuddy 桌面状态与记忆（工具状态，非项目产物）──
+.workbuddy/
+
+# ── 不可再分发的第三方运行时 ──
+# Live2D Cubism Core 属 Live2D Inc. 专有，不可随包分发（红线 R4）。
+# 上游 .gitignore 同样排除它；运行期由 host 侧从官方 CDN 取并缓存。
+live2dcubismcore.min.js
+bench/cubism/
+
+# ── 派生证据与大产物（可由 p0/ 脚本重建，不入库）──
+# p0/out/     探针日志、运行输出
+# p0/extract/ 从 app.asar 解出的 API 目录（2.3MB，可重建）
+# p0/sessions/ 解压后的真实会话轨迹（含真实对话内容，隐私）
+p0/out/
+p0/extract/
+p0/sessions/
+
+# bench/out/  测量输出
+bench/out/
+
+# tts-demo/bin/  ffmpeg.exe（87MB 第三方二进制）
+tts-demo/bin/
+
+# ── 媒体样音 ──
+# TTS 选型的过程产物。结论已写入 docs/，生成脚本 gen_*.py 入库，
+# 故样音可由脚本重建；*.html 试听页保留（clone 后需重跑脚本才能出声）。
+tts-demo/*.mp3
+tts-demo/*.wav
+
+# ── 依赖与缓存 ──
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pnpm-store/
+
+# ── 构建产物 ──
+*.exe
+*.tsbuildinfo
+
+# ── 日志与临时 ──
+*.log
+*.tmp
+out.txt
+push.out
+push.err
+
+# ── OS / 编辑器噪声 ──
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+.idea/
+.vscode/

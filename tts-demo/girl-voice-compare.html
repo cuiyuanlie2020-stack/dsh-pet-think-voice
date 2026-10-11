@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge TTS 女童声候选对比</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --fg:#1a1d21; --sub:#6b7280;
+    --line:#e5e7eb; --accent:#ff5c8a; --accent2:#7c5cff;
+    --ok:#0f9d58; --warn:#e8a33d; --bad:#e5484d;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14161a; --card:#1c1f24; --fg:#e8eaed; --sub:#9aa0a6;
+           --line:#2b2f36; --accent:#ff7aa2; --accent2:#a78bfa; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 20px 64px;background:var(--bg);color:var(--fg);
+       font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  .wrap{max-width:880px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  .lead{color:var(--sub);font-size:14px;margin:0 0 26px}
+  .row{background:var(--card);border:1px solid var(--line);border-radius:14px;
+       padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;gap:16px;
+       box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .row.reco{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+  .meta{flex:1;min-width:0}
+  .name{font-weight:650;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;
+       background:color-mix(in srgb,var(--accent2) 16%,transparent);color:var(--accent2)}
+  .tag.reco{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+  .tag.gray{background:color-mix(in srgb,var(--sub) 16%,transparent);color:var(--sub)}
+  .desc{color:var(--sub);font-size:12.5px;margin-top:3px;font-variant-numeric:tabular-nums}
+  audio{width:300px;max-width:42vw;height:36px}
+  .note{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:18px 20px;margin-top:22px}
+  .note h2{font-size:15px;margin:0 0 10px}
+  .note ul{margin:0;padding-left:20px;font-size:13.5px;color:var(--sub)}
+  .note li{margin:5px 0}
+  code{background:color-mix(in srgb,var(--sub) 14%,transparent);padding:1px 6px;border-radius:5px;font-size:12.5px}
+  @media(max-width:600px){ .row{flex-direction:column;align-items:stretch} audio{width:100%;max-width:100%} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Edge TTS 女童声候选</h1>
+  <p class="lead">台词：<b>“powersell又想咬我了”</b> —— Edge 官方已下架中文女童声，下面是三种近似方案实测。</p>
+
+  <div class="row reco">
+    <div class="meta">
+      <div class="name">晓伊 Xiaoyi <span class="tag reco">推荐</span><span class="tag">+50Hz · +8%</span></div>
+      <div class="desc">Cartoon 风格少女音抬高音调 → 最接近"可爱女童"，活泼有起伏</div>
+    </div>
+    <audio controls preload="none" src="girl_xiaoyi_p50.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="meta">
+      <div class="name">晓伊 Xiaoyi <span class="tag">+30Hz</span></div>
+      <div class="desc">轻抬音调，介于少女与童声之间，自然不假</div>
+    </div>
+    <audio controls preload="none" src="girl_xiaoyi_p30.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="meta">
+      <div class="name">晓伊 Xiaoyi <span class="tag gray">原始</span></div>
+      <div class="desc">原始少女音，未做任何处理（对照基线）</div>
+    </div>
+    <audio controls preload="none" src="girl_xiaoyi_raw.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="meta">
+      <div class="name">晓晓 Xiaoxiao <span class="tag">+40Hz</span></div>
+      <div class="desc">温暖女声抬高音调，偏"小姐姐"而非"小妹妹"</div>
+    </div>
+    <audio controls preload="none" src="girl_xiaoxiao_p40.mp3"></audio>
+  </div>
+
+  <div class="row">
+    <div class="meta">
+      <div class="name">云夏 Yunxia <span class="tag gray">官方童声 · 男</span></div>
+      <div class="desc">Edge 唯一在册的中文童声，但是<b>男童</b>（Cute 风格），作对照</div>
+    </div>
+    <audio controls preload="none" src="girl_yunxia.mp3"></audio>
+  </div>
+
+  <div class="note">
+    <h2>实测要点</h2>
+    <ul>
+      <li><code>zh-CN-XiaoshuangNeural</code>（晓双，官方女童声）<b>已被微软下架</b>，调用返回空文件。</li>
+      <li>当前 Edge 中文音色里<b>没有可用的女童声</b>；唯一童声是 <code>Yunxia</code>（男）。</li>
+      <li>可行做法：用 <code>--pitch=+30~50Hz</code> 把少女音调抬高，得到"童声化"效果（本地零成本，纯参数）。</li>
+      <li>Kokoro（zf_ 系列）全是成年女声，无童声、也不支持 pitch，做不出童声。</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

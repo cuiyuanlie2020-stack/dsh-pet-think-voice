@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge vs Kokoro · 中英混读样音对比</title>
+<style>
+  :root { --bg:#f7f7f5; --card:#ffffff; --border:#e3e2dd; --text:#2c2c2a; --muted:#6b6a64; --accent:#185FA5; --ok:#0f6e56; --warn:#993c1d; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:32px 20px; background:var(--bg); color:var(--text);
+         font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.6; }
+  .wrap { max-width:880px; margin:0 auto; }
+  h1 { font-size:20px; font-weight:600; margin:0 0 6px; }
+  h2 { font-size:15px; font-weight:600; margin:28px 0 10px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .quote { background:#eef4fb; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:14px; margin-bottom:8px; }
+  .quote code { font-family:ui-monospace,Consolas,monospace; color:var(--accent); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px 18px; margin-bottom:12px; }
+  .card.bad { border-color:#f0c9b8; background:#fdf6f2; }
+  .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .tag { display:inline-block; font-size:12px; padding:2px 8px; border-radius:5px; background:#eef4fb; color:var(--accent); }
+  .tag.k { background:#e4f4ee; color:var(--ok); }
+  .tag.x { background:#f7e4dd; color:var(--warn); }
+  .name { font-size:14px; font-weight:600; }
+  .meta { font-size:12px; color:var(--muted); }
+  audio { width:100%; margin-top:10px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; margin-top:6px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#faf9f7; font-weight:600; }
+  .good { color:var(--ok); font-weight:600; }
+  .bad2 { color:var(--warn); font-weight:600; }
+  .note { font-size:12px; color:var(--muted); margin-top:18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Edge vs Kokoro · 中英混读样音对比</h1>
+  <div class="sub">同一句台词多引擎对照 —— 重点测「中文 + 英文名词混杂」这一常见场景</div>
+
+  <h2>① 短句</h2>
+  <div class="quote">台词：<code>powersell又想咬我了</code></div>
+
+  <div class="card">
+    <div class="row"><span class="tag">Edge</span><span class="name">晓伊 zh-CN-XiaoyiNeural</span><span class="meta">年轻活泼女声 · 云端</span></div>
+    <audio controls src="edge_xiaoyi.mp3"></audio>
+  </div>
+  <div class="card">
+    <div class="row"><span class="tag">Edge</span><span class="name">晓晓 zh-CN-XiaoxiaoNeural</span><span class="meta">温暖女声 · 云端</span></div>
+    <audio controls src="edge_xiaoxiao.mp3"></audio>
+  </div>
+  <div class="card">
+    <div class="row"><span class="tag k">Kokoro</span><span class="name">zf_xiaoyi（misaki 音素化）</span><span class="meta">本地 CPU · 0 显存</span></div>
+    <audio controls src="kokoro_xiaoyi_misaki.wav"></audio>
+  </div>
+
+  <h2>② 长句（ASR 回译更可靠）</h2>
+  <div class="quote">台词：<code>powersell又想咬我了，这已经是第三次了，我把参数改小了一点，希望这次能跑通。</code></div>
+
+  <div class="card">
+    <div class="row"><span class="tag">Edge</span><span class="name">晓伊 · 长句</span></div>
+    <audio controls src="long_edge_xiaoyi.mp3"></audio>
+  </div>
+  <div class="card">
+    <div class="row"><span class="tag k">Kokoro</span><span class="name">zf_xiaoyi · 长句（misaki）</span></div>
+    <audio controls src="long_kokoro_xiaoyi.wav"></audio>
+  </div>
+
+  <h2>③ whisper 回译客观验证</h2>
+  <table>
+    <tr><th>样音</th><th>whisper 回译</th><th>判定</th></tr>
+    <tr><td>Edge 晓伊（长）</td><td>Power Cell又想咬我了這已經是第三次了我把參數改小了一點希望這次能跑通</td><td class="good">✅ 中文几乎完美</td></tr>
+    <tr><td>Kokoro（长·misaki）</td><td>Boss6想要我了這已經是第三次了我把參數改小了一點希望這次能跑通。</td><td class="good">✅ 中文基本正确</td></tr>
+    <tr><td>Kokoro（espeak 路径）</td><td>殿包賽中又剩下我了 / Then Boussa urgent be sent by me</td><td class="bad2">❌ 中文糊（此路不可用）</td></tr>
+  </table>
+
+  <div class="card bad">
+    <div class="row"><span class="tag x">关键坑</span><span class="name">kokoro-onnx 自带 espeak 中文路径是坏的</span></div>
+    <div class="meta" style="margin-top:6px">必须改用 <b>misaki[zh] 音素化 + create(..., is_phonemes=True)</b>，否则中文完全不可用。上面的长句 Kokoro 样音即为此正确路径产出。</div>
+    <audio controls src="_broken_espeak_cmn.wav"></audio>
+    <div class="meta">↑ 反例：espeak 路径产出的音频（回译全糊）</div>
+  </div>
+
+  <table>
+    <tr><th>引擎</th><th>中文自然度</th><th>中英混读</th><th>情感</th><th>资源</th><th>网络</th></tr>
+    <tr><td>Edge（晓伊/晓晓）</td><td>优</td><td>好</td><td>一般</td><td>0 本地占用</td><td>需联网</td></tr>
+    <tr><td>Kokoro zf_xiaoyi</td><td>良</td><td>良</td><td>较弱</td><td>CPU 约 1GB 内存</td><td>完全离线</td></tr>
+  </table>
+
+  <div class="note">英语名词（powersell 为自造词）两者都会读歪，属预期。真实开发中的英文名词（如 numpy、docker）Edge 表现更稳。</div>
+</div>
+</body>
+</html>

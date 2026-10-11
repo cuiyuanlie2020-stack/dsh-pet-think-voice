@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>P0-2 · 零依赖 Edge TTS 试听</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--fg:#e6edf3;--dim:#8b949e;--ok:#3fb950;--bd:#30363d;--acc:#58a6ff}
+  @media (prefers-color-scheme: light){
+    :root{--bg:#fff;--card:#f6f8fa;--fg:#1f2328;--dim:#656d76;--ok:#1a7f37;--bd:#d0d7de;--acc:#0969da}
+  }
+  body{margin:0;padding:24px;background:var(--bg);color:var(--fg);
+       font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:12px}
+  .row{display:flex;align-items:center;gap:14px}
+  .n{width:26px;height:26px;flex:0 0 26px;border-radius:50%;background:var(--acc);color:#fff;
+     display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+  .txt{flex:1;min-width:0}
+  .txt b{display:block;font-weight:500;margin-bottom:2px;word-break:break-word}
+  .meta{color:var(--dim);font-size:11.5px}
+  audio{width:280px;height:32px}
+  .k{color:var(--ok);font-weight:600}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:8px}
+  th,td{border:1px solid var(--bd);padding:6px 9px;text-align:left}
+  th{background:rgba(127,127,127,.09);font-weight:600}
+  code{background:rgba(127,127,127,.15);padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<h1>P0-2 · 零依赖 Edge TTS 试听</h1>
+<div class="sub">
+  引擎：<b>自实现（无任何 npm 依赖）</b> · 音色 <code>zh-CN-XiaoyiNeural</code> + <code>pitch=+30Hz</code><br>
+  每个文件的<b>字节数与本机 Python 版 edge-tts 参考实现完全一致</b>（6/6），可视为同一份音频
+</div>
+
+<div class="card">
+  <div class="row">
+    <div class="n">1</div>
+    <div class="txt"><b>powersell 又想咬我了</b><span class="meta">吐槽 · 14 字 · 16.0KB</span></div>
+    <audio controls src="out/zerodep_line1.mp3"></audio>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="n">2</div>
+    <div class="txt"><b>哦——原来 param 是必填的，难怪一直报 undefined。</b><span class="meta">顿悟 · 中英混读 · 30.1KB</span></div>
+    <audio controls src="out/zerodep_line2.mp3"></audio>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="n">3</div>
+    <div class="txt"><b>等等，这个正则怎么写都不对，我是不是把方向搞反了？</b><span class="meta">自我怀疑 · 30.5KB</span></div>
+    <audio controls src="out/zerodep_line3.mp3"></audio>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="n">4</div>
+    <div class="txt"><b>嗯……这个 bug 藏得真深，我绕了一大圈才找到。</b><span class="meta">感叹 · 中英混读 · 26.7KB</span></div>
+    <audio controls src="out/zerodep_line4.mp3"></audio>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="n">5</div>
+    <div class="txt"><b>好，思路清晰了，let me 把这个 function 重写一下。</b><span class="meta">收束 · 中英混读 · 30.9KB</span></div>
+    <audio controls src="out/zerodep_line5.mp3"></audio>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="n">★</div>
+    <div class="txt"><b>5 句连读（长样本，用于客观校验）</b><span class="meta">130 字 · 118.8KB · 1.68s 合成</span></div>
+    <audio controls src="out/zerodep_long.mp3"></audio>
+  </div>
+</div>
+
+<div class="card">
+  <b>实测资源画像（Node 侧）</b>
+  <table>
+    <tr><th>指标</th><th>数值</th></tr>
+    <tr><td>冷启动（第 1 条）</td><td>811 ms</td></tr>
+    <tr><td>热态墙钟均值</td><td>1261 ms</td></tr>
+    <tr><td>CPU / 次（中位）</td><td><span class="k">16 ms</span></td></tr>
+    <tr><td>CPU 合计（6 次）</td><td>156 ms</td></tr>
+    <tr><td>进程 RSS 增量</td><td>+19.3 MB</td></tr>
+    <tr><td>吞吐</td><td>22.2 字/秒 · 23.0 KB/秒</td></tr>
+    <tr><td>npm 依赖</td><td><span class="k">0 个</span></td></tr>
+  </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Think Probe (P0)",
+    "description": "Verifies whether a Host plugin can read the model's reasoning text from session events. Logs only; no UI."
+  }
+}

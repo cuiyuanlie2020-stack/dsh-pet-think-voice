@@ -1,0 +1,4 @@
+# P0 探针 bundle：只插入一行 Host 插件，无 Client 半区、无界面
+- insert:
+    - id: dsh-think-probe
+      name: '@local/dsh-think-probe'
