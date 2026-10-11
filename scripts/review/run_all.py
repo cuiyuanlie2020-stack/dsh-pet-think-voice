@@ -427,7 +427,15 @@ def _summ(samples, t0, t1):
     }
 
 
-def probe_browser(keep=False):
+def probe_browser(keep=False, speech=False):
+    """浏览器侧资源探针（DESIGN §7.4 六项阈值）。
+
+    `speech=True` 时多跑**阶段 3（朗读态）**：页面会额外做 P3-4 的每帧口型驱动
+    （读 1024 点波形求 RMS + 写 `ParamMouthOpenY`），判定窗口改成 baseline vs speech。
+    ⚠️ 默认 False —— 既有 R-D 的基线与耗时都不许被这条新维度改动。
+    """
+    LABEL = "R-E" if speech else "R-D"
+    NAME = "朗读态（口型驱动）" if speech else "浏览器侧 Live2D"
     missing = []
     if not (VENDOR_PLUGIN / "lib" / "live2d-vendor.js").exists():
         missing.append("vendor/dsh-pet-live2d（上游仓库，只读参考，不入库）")
@@ -440,7 +448,7 @@ def probe_browser(keep=False):
     if not PY_BENCH:
         missing.append("带 psutil 的 python")
     if missing:
-        rec("R-D", "浏览器侧 Live2D", "SKIP",
+        rec(LABEL, NAME, "SKIP",
             "缺前置：" + "；".join(missing) +
             "。何时会有：本机备份上游仓库与 Cubism Core 后即可跑；"
             "干净 clone 需按 RESOURCE-BUDGET §8 前置依赖补齐（两者都不入库，属许可要求）")
@@ -466,20 +474,23 @@ def probe_browser(keep=False):
                 break
             time.sleep(0.25)
         if not port:
-            rec("R-D", "浏览器侧 Live2D", "FAIL", "serve.js 未在 15s 内写出 out/port.txt")
+            rec(LABEL, NAME, "FAIL", "serve.js 未在 15s 内写出 out/port.txt")
             return None
 
         edge = subprocess.Popen([
             EDGE, "--headless=new", "--enable-gpu", "--ignore-gpu-blocklist",
             "--use-angle=d3d11", f"--user-data-dir={tmp_profile}",
             "--enable-precise-memory-info", "--no-first-run", "--no-default-browser-check",
-            f"http://127.0.0.1:{port}/?fps=60",
+            f"http://127.0.0.1:{port}/?fps=60" + ("&speech=1" if speech else ""),
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(3.0)  # 等页面起来（10s baseline 阶段的前段）
 
-        rc, out, err = run([PY_BENCH, str(BENCH / "sample.py"), "32", tag], cwd=BENCH, timeout=120)
+        # 朗读态多一个 15s 阶段 ⇒ 采样窗口要相应拉长，否则最后一段采不满
+        sample_seconds = "54" if speech else "32"
+        rc, out, err = run([PY_BENCH, str(BENCH / "sample.py"), sample_seconds, tag],
+                           cwd=BENCH, timeout=180)
         if rc != 0:
-            rec("R-D", "浏览器侧 Live2D", "FAIL", f"sample.py 退出码 {rc}：{(err or '')[-160:]}")
+            rec(LABEL, NAME, "FAIL", f"sample.py 退出码 {rc}：{(err or '')[-160:]}")
             return None
 
         for _ in range(60):
@@ -487,7 +498,7 @@ def probe_browser(keep=False):
                 break
             time.sleep(0.5)
         if not report_file.exists():
-            rec("R-D", "浏览器侧 Live2D", "FAIL", "页面未回传 /dump（页面报错？看 bench/index.html 的 #err）")
+            rec(LABEL, NAME, "FAIL", "页面未回传 /dump（页面报错？看 bench/index.html 的 #err）")
             return None
 
         rep = json.loads(report_file.read_text(encoding="utf-8"))
@@ -511,79 +522,88 @@ def probe_browser(keep=False):
     results = {r["name"]: r for r in rep if r.get("event") == "phaseResult"}
     done = next((r for r in rep if r.get("event") == "done"), {})
 
-    if errors or len(phases) < 2 or "baseline" not in results or "live2d" not in results:
-        rec("R-D", "浏览器侧 Live2D", "FAIL",
-            f"页面异常：{len(errors)} 个 error 事件；phase 事件 {len(phases)} 个")
+    # 朗读态要有第三个阶段；缺了就说明页面那条分支没跑起来
+    # （这比"数值超标"更该先报 —— 否则会拿一个不存在的阶段去算差值）
+    wanted = ["baseline", "live2d", "speech"] if speech else ["baseline", "live2d"]
+    if errors or len(phases) < len(wanted) or any(k not in results for k in wanted):
+        rec(LABEL, NAME, "FAIL",
+            f"页面异常：{len(errors)} 个 error 事件；phase 事件 {len(phases)} 个"
+            f"（期望 {', '.join(wanted)}；实际 {', '.join(results) or '无'}）")
         return None
 
     renderer = gl.get("renderer", "?")
     if "SwiftShader" in str(renderer) or "Software" in str(renderer):
-        rec("R-D", "GPU 路径", "FAIL", f"落到软渲染：{renderer} —— 该结果不可用于判定")
+        rec(LABEL, "GPU 路径", "FAIL", f"落到软渲染：{renderer} —— 该结果不可用于判定")
         return None
     rec("R-D", "GPU 路径", "PASS", f"真 GPU：{renderer}")
 
     cuts = [p["wall"] / 1000.0 for p in phases]
     end_wall = done.get("wall", samples[-1]["wall"] * 1000) / 1000.0
-    a = _summ(samples, cuts[0], cuts[1])
-    b = _summ(samples, cuts[1], end_wall)
+    a = _summ(samples, cuts[0], cuts[1])                       # baseline
+    # 判定窗口取**最后一个阶段**：
+    #   非朗读态 → live2d（"装载模型贵不贵"）
+    #   朗读态   → speech（"加了口型驱动还达标吗"）
+    target = "speech" if speech else "live2d"
+    b = _summ(samples, cuts[-1], end_wall)
     if not (a and b):
-        rec("R-D", "浏览器侧 Live2D", "FAIL", "采样窗口不足，无法对齐（重跑一次试试）")
+        rec(LABEL, NAME, "FAIL", "采样窗口不足，无法对齐（重跑一次试试）")
         return None
 
-    res = {"ok": True, "renderer": renderer,
-           "baseline": a, "live2d": b,
-           "fps_baseline": results["baseline"]["fps"], "fps_live2d": results["live2d"]["fps"],
-           "frame_work_ms": results["live2d"]["frameWorkAvgMs"],
+    res = {"ok": True, "renderer": renderer, "target": target,
+           "baseline": a, target: b,
+           "fps_baseline": results["baseline"]["fps"],
+           f"fps_{target}": results[target]["fps"],
+           "frame_work_ms": results[target]["frameWorkAvgMs"],
            "js_heap_mb": (done.get("memory") or {}).get("usedMB")}
 
     cores = (b["cpu_pct"] - a["cpu_pct"]) / 100.0
     if cores <= TH["extra_cpu_cores"]:
-        rec("R-D", "额外 CPU", "PASS", f"{cores:.3f} 核（阈值 {TH['extra_cpu_cores']}）")
+        rec(LABEL, "额外 CPU", "PASS", f"{cores:.3f} 核（阈值 {TH['extra_cpu_cores']}）")
         if abs(cores - BASE["browser_cpu_cores"]) / BASE["browser_cpu_cores"] > BASELINE_DRIFT:
-            rec("R-D", "额外 CPU 基线对照", "WARN", f"基线 {BASE['browser_cpu_cores']} 核，实测 {cores:.3f}")
+            rec(LABEL, "额外 CPU 基线对照", "WARN", f"基线 {BASE['browser_cpu_cores']} 核，实测 {cores:.3f}")
     else:
         res["ok"] = False
-        rec("R-D", "额外 CPU", "FAIL", f"{cores:.3f} 核 > 阈值 {TH['extra_cpu_cores']}")
+        rec(LABEL, "额外 CPU", "FAIL", f"{cores:.3f} 核 > 阈值 {TH['extra_cpu_cores']}")
     res["cpu_cores"] = cores
 
     if b["gpu_avg"] is not None and a["gpu_avg"] is not None:
         pp = b["gpu_avg"] - a["gpu_avg"]
         res["gpu_pp"] = pp
         if pp <= TH["extra_gpu_pp"]:
-            rec("R-D", "额外 GPU 利用率", "PASS", f"{pp:+.2f} pp（阈值 {TH['extra_gpu_pp']}）")
+            rec(LABEL, "额外 GPU 利用率", "PASS", f"{pp:+.2f} pp（阈值 {TH['extra_gpu_pp']}）")
         else:
             res["ok"] = False
-            rec("R-D", "额外 GPU 利用率", "FAIL", f"{pp:+.2f} pp > 阈值 {TH['extra_gpu_pp']}")
+            rec(LABEL, "额外 GPU 利用率", "FAIL", f"{pp:+.2f} pp > 阈值 {TH['extra_gpu_pp']}")
     else:
-        rec("R-D", "额外 GPU 利用率", "SKIP", "nvidia-smi 不可用；何时会有：把 nvidia-smi 放进 PATH")
+        rec(LABEL, "额外 GPU 利用率", "SKIP", "nvidia-smi 不可用；何时会有：把 nvidia-smi 放进 PATH")
 
     if b["gpu_mem"] is not None and a["gpu_mem"] is not None:
         vram = b["gpu_mem"] - a["gpu_mem"]
         res["vram_mb"] = vram
         if vram <= TH["extra_vram_mb"]:
-            rec("R-D", "额外显存", "PASS", f"{vram:+.0f} MB（阈值 {TH['extra_vram_mb']}MB，全机口径含噪声）")
+            rec(LABEL, "额外显存", "PASS", f"{vram:+.0f} MB（阈值 {TH['extra_vram_mb']}MB，全机口径含噪声）")
         else:
             res["ok"] = False
-            rec("R-D", "额外显存", "FAIL", f"{vram:+.0f} MB > 阈值 {TH['extra_vram_mb']}MB")
+            rec(LABEL, "额外显存", "FAIL", f"{vram:+.0f} MB > 阈值 {TH['extra_vram_mb']}MB")
     else:
-        rec("R-D", "额外显存", "SKIP", "nvidia-smi 不可用")
+        rec(LABEL, "额外显存", "SKIP", "nvidia-smi 不可用")
 
-    drop = results["baseline"]["fps"] - results["live2d"]["fps"]
+    drop = results["baseline"]["fps"] - results[target]["fps"]
     if drop <= TH["fps_drop_max"]:
-        rec("R-D", "稳态帧率", "PASS",
-            f"{results['baseline']['fps']} → {results['live2d']['fps']} fps（跌 {drop:.1f}，阈值 {TH['fps_drop_max']}）")
+        rec(LABEL, "稳态帧率", "PASS",
+            f"{results['baseline']['fps']} → {results[target]['fps']} fps（跌 {drop:.1f}，阈值 {TH['fps_drop_max']}）")
     else:
         res["ok"] = False
-        rec("R-D", "稳态帧率", "FAIL", f"跌 {drop:.1f} fps > 阈值 {TH['fps_drop_max']}")
+        rec(LABEL, "稳态帧率", "FAIL", f"跌 {drop:.1f} fps > 阈值 {TH['fps_drop_max']}")
 
     heap = res.get("js_heap_mb")
     if heap is None:
-        rec("R-D", "额外内存（浏览器 JS 堆）", "SKIP", "页面未上报 performance.memory")
+        rec(LABEL, "额外内存（浏览器 JS 堆）", "SKIP", "页面未上报 performance.memory")
     elif heap <= TH["extra_mem_mb"]:
-        rec("R-D", "额外内存（浏览器 JS 堆）", "PASS", f"{heap:.1f} MB（阈值 {TH['extra_mem_mb']}MB）")
+        rec(LABEL, "额外内存（浏览器 JS 堆）", "PASS", f"{heap:.1f} MB（阈值 {TH['extra_mem_mb']}MB）")
     else:
         res["ok"] = False
-        rec("R-D", "额外内存（浏览器 JS 堆）", "FAIL", f"{heap:.1f} MB > 阈值 {TH['extra_mem_mb']}MB")
+        rec(LABEL, "额外内存（浏览器 JS 堆）", "FAIL", f"{heap:.1f} MB > 阈值 {TH['extra_mem_mb']}MB")
 
     return res
 
@@ -611,6 +631,9 @@ def write_report(args, res):
     if res.get("browser"):
         lines += ["", "## R-D 明细（浏览器侧 Live2D）", "", "```json",
                   json.dumps(res["browser"], ensure_ascii=False, indent=2), "```"]
+    if res.get("speech"):
+        lines += ["", "## R-E 明细（朗读态 · 口型驱动）", "", "```json",
+                  json.dumps(res["speech"], ensure_ascii=False, indent=2), "```"]
     out = BENCH_OUT / "resource-report.md"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     (BENCH_OUT / "resource-report.json").write_text(
@@ -638,7 +661,7 @@ def main():
     res = {}
     if args.fast:
         section("资源闸 · 已跳过（--fast）")
-        rec("R", "资源闸", "SKIP", "本次为 --fast：跳过 R-A/R-B/R-C/R-D。何时会有：去掉 --fast 即完整跑")
+        rec("R", "资源闸", "SKIP", "本次为 --fast：跳过 R-A/R-B/R-C/R-D/R-E。何时会有：去掉 --fast 即完整跑")
     else:
         section("R-A · host 半区常驻（DESIGN 7.1）")
         res["host"] = probe_host()
@@ -648,6 +671,10 @@ def main():
         res["sidecar"] = probe_sidecar()
         section("R-D · 浏览器侧 Live2D（DESIGN 7.4 六项阈值）")
         res["browser"] = probe_browser(keep=args.keep)
+        # R-E：朗读态（P3-7）。与 R-D 同一套采样，只是判定窗口取「加了口型驱动之后」
+        # 的那个阶段 —— 否则 P3 之后没人会再回头看"说话时还达标吗"。
+        section("R-E · 朗读态（口型驱动 · DESIGN 7.4 六项阈值）")
+        res["speech"] = probe_browser(keep=args.keep, speech=True)
 
     out = write_report(args, res)
     n = {s: sum(1 for r in RESULTS if r[2] == s) for s in ("PASS", "FAIL", "SKIP", "WARN", "INFO")}
