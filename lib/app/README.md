@@ -12,8 +12,11 @@
 
 | 落点 | 职责 | 排期 |
 |---|---|---|
-| `app/pipeline` | 编排上述七步，持有状态与生命周期 | P2-6 |
+| `app/thinking-pipeline.js` | ✅ **已落地（P2-2 / P2-6）**：订阅两条思考通道 → 提取 → 切分 → 打分 → 节流 → 产出 `speak` 帧 | P2-2 |
 | `app/settings` | 用户可调项（频率档、静音、音色、节流档位） | P3-6 |
+
+> ⚠️ `thinking-pipeline` **不内部读时钟**：`now` 由构造参数注入，于是整条流水线可以脱离 DSH
+> 与浏览器单测（`lib/app/thinking-pipeline.test.js`，19 例）。宿主只负责"订阅 + 转发 + 每 2s 问一声"。
 
 ## ⛔ 禁止
 
