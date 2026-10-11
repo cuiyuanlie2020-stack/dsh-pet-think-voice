@@ -28,15 +28,34 @@
 
 ### 1. 装插件
 
-在 DSH 里打开**侧栏 → 插件 → 添加插件**，填三者之一：
+在 DSH 里打开**侧栏 → 插件 → 添加插件**，在「包名或地址」里填包名、GitHub 地址，
+或者**本机仓库路径**。
 
-- 发布的 npm 包名（本仓库发布后即为包名本身）
-- 本仓库的 GitHub 地址
-- **本仓库的本地绝对路径**（开发时最常用；必须是绝对路径，相对路径会被解析到 profile 内部）
+**填本地路径时必须带 `file:` 前缀**，不带前缀装不上：
 
-填完 DSH 会先读出这个 spec 指向什么（读 `package.json`），确认后再执行安装。
-装完**重启 DSH**（界面自己会提示"更改将在下次启动生效"），然后在插件页把 `think-voice-pet`
-这个组合包启用。
+```
+Windows        file:C:\Users\<你>\WorkBuddy\2026-10-11-06-15-07
+macOS / Linux  file:/Users/<你>/path/to/dsh-pet-think-voice
+```
+
+> 为什么：不带前缀的裸路径会被 pnpm 当成 `link:` 依赖，而 pnpm **不会**为 `link:`
+> 在 profile 的 `node_modules/` 里建条目 —— DSH 随后解析不到这个 bundle，安装以
+> `cannot resolve profile bundle "…"` 告终。本项目实测：**裸路径失败、`file:` 成功**。
+
+填好后点「安装」，DSH 会读出它指向什么（显示包名 / 描述 / 版本），装完在同一个对话框里点
+「**立即启用**」—— 这一步才会把插件写进 profile 的 `dsh.profile.bundles`（**少了它插件不会加载**）。
+然后**重启 DSH**，设置页与插件页就能看到她了。
+
+装上的是**一份快照**（`file:` 依赖会被拷进 profile 的 `node_modules`）：改了仓库代码要
+重新装一次才生效。开发时更省事的做法是用 `--patch` 叠加层（见下方「开发」）。
+
+若习惯命令行，等价的一条（装完会自动登记 bundle）：
+
+```bash
+dsh plugin --profile <profile 名> add "file:<仓库绝对路径>"
+```
+
+（`dsh plugin` 是 pnpm 的转发；`<profile 名>` 一般是 `desktop`。）
 
 ### 2. Cubism Core（Live2D 运行时）
 
@@ -122,11 +141,26 @@ macOS/Linux   $DSH_HOME/pets/.runtime/live2dcubismcore.min.js
 npm run build:vendor     # 重建 lib/live2d-vendor.js（pixi + live2d engine）
 ```
 
-验收脚本（`scripts/review/`）：项目自带一键验收，`--fast` 跳过资源闸。
 纯逻辑模块（`lib/core/`）有单测，可脱离 DSH 直接跑：
 
 ```bash
 node --test lib/core/*.test.js lib/app/*.test.js lib/*.test.js
 ```
 
-架构与决策记录见 `docs/`：`DESIGN.md`（设计）· `PLAN.md`（计划）· `HANDOFF.md`（交接）。
+**改代码后不必重装**：用 `--patch` 叠加层直接指向本仓的 `lib/index.js` 起服务，
+改完刷新页面即可。叠加层就是一个 yml：
+
+```yaml
+- insert:
+    - id: think-voice-pet
+      name: 'file:///绝对路径/lib/index.js'
+```
+
+```bash
+dsh --patch <叠加层.yml> --profile web --port 8130
+```
+
+⚠️ 用 `web` profile 验（插件同时有宿主半区与浏览器半区）；Windows 上从 Git Bash 起
+要加 `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'`，并且 `--patch` 用**相对路径**。
+
+架构与决策记录见 `docs/`：`DESIGN.md`（设计）· `PLAN.md`（计划）· `HANDOFF.md`（交接，换会话先读它）。
