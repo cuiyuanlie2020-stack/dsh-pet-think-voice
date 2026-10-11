@@ -9,7 +9,7 @@
 > | 工作区 / 仓库根 | `C:/Users/MSI/WorkBuddy/2026-10-11-06-15-07/`（**两者相同**，就地 `git init`） |
 > | 阶段 | P0 ✅ · P1 ✅ · **P2 ← 现在在这里** |
 > | HEAD | `main`（**D8 + P2-1 均已合并**）· tag `v0.2-p1-scaffold-2026-10-11` · ⚠️ 本简报**不锁定哈希**（每次提交都回写不现实），要确切值用 `git log -1 --oneline` |
-> | 实现代码 | 上游基线 81 文件已入仓；**自有实现起步**：`lib/core/thinking-extractor.js`（P2-1）+ 26 例单测；`lib/infra` `lib/app` 仍为 0 行 |
+> | 实现代码 | 自有实现落地：`lib/core/` 四个模块 + `lib/app/thinking-pipeline.js` + 入口接线（`lib/index.js` / `lib/client.js`）；`lib/infra/` 仍为空（P3 才接 TTS） |
 
 ---
 
@@ -43,10 +43,10 @@
 | 仓库 | **134 文件 / 5.716 MB**；`.git` 约 1.2 MB；工作区总 110 MB（其余为不入库资产） |
 | 提交链 | `ba22367`（基线）→ `f13b52e` `31bde0e` `210e6ac` `ceee23f`（P1 + 交接简报）→ **D8 落地**：分支 `chore/import-upstream-baseline`（`2b78543` `f64f7ab` `0e21150` `fbc52bc`）→ **P2-1**：分支 `feat/p2-thinking-extractor`（`27ddf45` `001ed1f` `0d42976`）。两次都用 `merge --no-ff`，分支历史保留 |
 | tag | `v0.1-baseline-2026-10-11`（P0 收口）· `v0.2-p1-scaffold-2026-10-11`（P1 骨架） |
-| 验收 | `<python> scripts/review/run_all.py` → **33 PASS / 0 FAIL / 1 SKIP / 2 INFO**（约 1m48s）；`--fast` → **23 PASS / 0 FAIL**（P2-1 落地后 S5 由 SKIP 变为实跑） |
+| 验收 | 完整 `<python> scripts/review/run_all.py` → **34 PASS / 0 FAIL / 0 SKIP / 2 INFO**（约 1m30s）；`--fast` → **23 PASS / 0 FAIL**；S5 单测 **6 文件 / 149 例全绿** |
 | 目录骨架 | `lib/`（上游 host+browser+desktop 半区）· `lib/core|infra|app`（各带职责 README）· `pets/`（美术）· `locale/` `src/` · `scripts/review/` · `experiments/` · `docs/` · `p0/` · `bench/` |
 | 上游基线 | `A8Chann/dsh-pet-live2d` @ `33af354`（2026-10-10），插件版本 3.3.1 → 已改名为 `dsh-pet-think-voice` |
-| **P2 进度** | **P2-1 ✅**（`lib/core/thinking-extractor`，26 单测 + 真实语料回放）· P2-2 ~ P2-6 未开工 |
+| **P2 进度** | **P2-1 ~ P2-6 代码全部 ✅**；单测 149 例全绿；真 DSH 宿主上两条通道订阅成功。⚠️ **唯一遗留：真实 GUI 回合的气泡验收**（见 §7 末尾） |
 | 规则形态 | **仓库根级 `CODEBUDDY.md`**（不写 `paths`，覆盖整子树）——机制已由引擎代码核实 |
 | 探针证据 | `p0/out/probe.log`（V1 运行时闭环，**已被 gitignore，不入库**，本机还在盘上） |
 | P2 语料 | `~/.dsh/sessions/**/session.v4.jsonl.zstd`（**27 个**；其中就有本工作区的会话目录） |
@@ -145,6 +145,9 @@ ELECTRON_RUN_AS_NODE=1 "<DSH>\DeepSeek Harness.exe" --expose-internals \
 - ⚠️ **只覆盖 Host 半区**；浏览器侧（气泡 / 口型）需 `web` profile
 - ⚠️ **P5 发布前必须另做一次真实安装验证**（GUI 插件页 或 `install_bundle`），否则"社区能装上"从未被验证
 
+⚠️ **`--patch` 必须放在 `--profile` 之前**（web app 会把自己的参数解析得很严；headless 则宽容）。
+⚠️ **本插件必须用 `web` profile 验**：`inject = ['webServer']`，headless 里它会一直 `pending`。
+
 **叠加层内容**（指到本仓根插件，`id` 用 row id）：
 
 ```yaml
@@ -212,22 +215,32 @@ DESIGN §8.2 要求「上游 `LICENSE` + `NOTICE.md` **原样保留不可改写*
 
 ---
 
-## 7. ▶️ 下一步：P2 最小闭环（无声音）
+## 7. ✅ P2 最小闭环（无声音）—— 代码完成，余 GUI 验收
 
 **目标：思考流出来。** 出口判据 —— **连续 vibecoding 10 分钟，气泡至少出现 3 条可读、不重复、不是废话的思考片段。**
+
+> 📊 **数量侧已估算可达**：真实语料串起来跑 → 4714 片段 → 过阈值 360 条（7.6%）→ 去重后 **342 条**（≈1.6 条/思考），
+> 而 20s 闸门上限 3 条/分钟 ⇒ 素材侧不是瓶颈。**质量侧必须靠人听**（P4），且受 **D10** 影响。
 
 | 编号 | 切片 | 改哪里 | ✅ 验收判据 | 回归判据 | 预估 |
 |---|---|---|---|---|---|
 | P2-1 | `ThinkingExtractor` ✅ **已完成** | `lib/core/thinking-extractor.js` + 单测 | 单测：给定样本事件 → 提取出预期文本（**26 例全绿**）；另有**真实语料回放**：212/212 两通道逐字一致、拦下 24 个空 `reasoning` 块 | ✅ `--fast` 23 PASS / 0 FAIL | ✅ |
-| P2-2 | host 接入采集 | `lib/index.js` 订阅（§4.1 两条通道）+ 调 P2-1 | 真实会话中 host 日志出现思考片段 | **原有 8 相位仍正常** | 2h |
-| P2-3 | `FragmentSplitter` | `lib/core/fragment-splitter.*` + 单测 | 单测：长思考（≥1000 字）→ 语义完整片段（不切碎句子）；含**长度上限** | 单测全绿 | 2h |
-| P2-4 | `InterestScorer`（**仅规则级**） | `lib/core/interest-scorer.*` + 词表 + 单测 | 单测：命中词表片段得分高；噪声片段得分低 | 单测全绿 | 2h |
-| P2-5 | `SpeechPlanner`（仅节流/去重） | `lib/core/speech-planner.*` + 单测 | 单测：**20s 内最多出 1 句**（D3 已定）；重复片段被去重 | 单测全绿 | 1.5h |
-| P2-6 | SSE 下发 + 气泡显示 | `lib/index.js`（`speak` 帧）+ `lib/client.js`（气泡） | 真实会话中**气泡出现思考片段文字** | 气泡原有功能（相位提示）不受影响 | 2h |
+| P2-2 | host 接入采集 ✅ **已完成** | `lib/index.js` `attachThinkingEvents` + `lib/app/thinking-pipeline.js` | 真 DSH 实测 `思考通道订阅：持久=ok 实时=ok`；编排另有 19 例单测 | ✅ 相位帧形状未变（有单测守） | ✅ |
+| P2-3 | `FragmentSplitter` ✅ **已完成** | `lib/core/fragment-splitter.js` + 单测 | **21 例全绿**；真实语料：4714 片段、**超上限 0 / 不丢字 0** | ✅ 单测全绿 | ✅ |
+| P2-4 | `InterestScorer`（**仅规则级**） ✅ **已完成** | `lib/core/interest-scorer.js` + 词表 + 单测 | **19 例全绿**；⚠️ 实测推翻 DESIGN §5.1 词表（中文触发 0 次）→ 改双语 | ✅ 单测全绿 | ✅ |
+| P2-5 | `SpeechPlanner`（仅节流/去重） ✅ **已完成** | `lib/core/speech-planner.js` + 单测 | **23 例全绿**；20s 频率闸（D3）+ 去重 + 队列溢出丢最差 | ✅ 单测全绿 | ✅ |
+| P2-6 | SSE 下发 + 气泡显示 ⚠️ **代码完成，GUI 验收未做** | `lib/index.js`（`speak` 帧 + `broadcast`）+ `lib/client.js`（气泡） | ⚠️ 产出逻辑与 SSE 推帧已验；"真实回合看到气泡"需 GUI，未做（见下） | ✅ 相位提示逻辑未动 | ✅ |
 
-**优先级**：P2-1 ✅ 已完成。**下一个是 P2-3 `FragmentSplitter`**（原本与 P2-1 并列最高：不切分就没法用，因为思考中位 1290 字）；P2-2（host 接入）可与 P2-3 并行，但需 `lib/index.js` 订阅两条通道。
+**P2 状态**：代码全部完成。**唯一遗留 = 真实 GUI 回合的气泡验收**。
 
-**P2-1 的复用点**：`lib/core/thinking-extractor.js` 已导出 `extractReasoning`（自动判别双通道）；P2-2 接 host 时**直接用**，不要再写一份订阅侧解析。⚠️ 实时通道返回的是**增量**（`meta.isDelta`），累积归调用方。
+> 🔴 **为什么没做**：`agent-browser` 需要全局装包 + 下载约 500MB Chromium（**属环境变更，未擅自执行**）；
+> 而 web profile 的 `/api` 有 token 围栏，纯 curl 驱动不了"发一条消息"。
+> **两条路径**：① 批准装 `agent-browser` 后我来跑 ② **你在自己的 DSH GUI 里挂 §5 那个叠加层跑一轮**（最快）。
+>
+> ⚠️ 顺带确认：**headless profile 跑不了本插件** —— `inject = ['webServer']` 会让它一直 `pending`，
+> 因为思考采集最终要靠 SSE 把结果送到浏览器。**验证必须用 `web` profile。**
+
+**P2 的复用点**：领域层四个模块都是纯函数/注入时钟，可直接复用；`lib/app/thinking-pipeline.js` 的 `ingest` 目前用同步 `scoreSync`，到 P4-4 换异步小模型时需整体改 async。
 
 **开工前必读**：§6.2 的三条改名硬契约 —— P2-2 改 `lib/index.js`、P2-6 改 `lib/client.js` 时，**别把包名 / row id / 路由前缀改漂了**。
 
@@ -249,6 +262,9 @@ DESIGN §8.2 要求「上游 `LICENSE` + `NOTICE.md` **原样保留不可改写*
 | 8 | 浏览器 CPU 别用跨进程求和（Edge 进程数会变，进程退出会丢已累计 CPU） | 用页面内 ticker 首尾插桩；两法互证 |
 | 9 | 插件只能由 DSH 自己装：`plugin_manager.install_bundle` | **不许**手写 profile 的 `package.json` / `cordis.patch.yml`，**不许**在 profile 目录跑 pnpm |
 | 10 | **根 `package.json` 有 `"type": "module"` ⇒ 全树 `.js` 被当 ESM**。D8 把上游插件包搬到仓库根后，`bench/host_probe.js`、`bench/serve.js`、`p0/{asar,catalog,decls}.js`（都是 CJS）当场 `require is not defined` 崩掉 → **R-A / R-D 两个资源闸静默变 FAIL** | 按目录声明类型：`bench/package.json` 与 `p0/package.json` 写 `{"type":"commonjs"}`；`p0/probe-plugin/package.json` 已有 `{"type":"module"}` 作嵌套覆盖。**新增任何子目录脚本后，跑一次完整 `run_all.py`（不能只跑 `--fast`，资源闸在 `--fast` 里是 SKIP）** |
+| 11 | **`--patch` 是启动器选项，必须放在 `--profile` 之前**。写成 `--profile web --patch x.yml --port …` 会被 **web app** 当成自己的参数，报 `unknown option '--patch'` | 正确顺序：`… --patch <overlay> --profile web --port 8123 --no-open`。（headless 容忍该顺序，web 不容忍 —— 所以我在 headless 上用对了、到 web 上才踩到） |
+| 12 | **curl 在本机走代理** → 访问 127.0.0.1 返回 **502**（看起来像服务端错，其实是代理错） | 加 `--noproxy '*'`。这条害我一度以为"有别的进程占着 8123" |
+| 13 | **普通 `&` 派生的后台进程活不过一次工具调用**（服务起来马上被打死，端口 TIME_WAIT 残留） | 要用受管理的后台任务（`run_in_background`），并在收尾显式 kill |
 
 ---
 
@@ -262,6 +278,7 @@ N1 不做"读回复全文" · N2 不做账号/云端同步 · N3 不训练/微�
 |---|---|---|
 | ~~D8~~ | ~~上游插件包如何进入本仓~~ ✅ **已拍甲（2026-10-11）并已落地**，见 §6 | 已解决 |
 | **D9** | **上游 `NOTICE.md` 与本项目 `NOTICE.md` 同名冲突**（§6.4） | P5-1 |
+| **D10** | **思考主要是英文 ⇒ 念什么语种、用什么音色？** 实测 **76% 思考英文主导、中文仅 5.2%**，而原定 `zh-CN-XiaoyiNeural` 是中文音色（DESIGN §6.3.1 / §9.2） | **P3 开工前必须拍**（同时决定 TTS 选型与筛选口径） |
 | D3 | ~~朗读节奏~~ ✅ **已定为 20s/句**（用户 2026-10-11 指定；DESIGN §7.3 已同步） | 已解决 |
 | D5 | Tauri 桌面壳是否保留（**顺带解决 `dsh-pet-live2d-desktop-*` 改名遗留**，§6.3a） | P3 结束前 |
 | D2 | 筛选词表与阈值 | P4-1（需真实数据校准） |
@@ -278,4 +295,7 @@ N1 不做"读回复全文" · N2 不做账号/云端同步 · N3 不训练/微�
 - [x] 读 DESIGN §2 §4 §6 + PLAN §4 → 复述 P2 出口判据
 - [x] ~~拍板 D8~~ ✅ **已拍甲并落地**（§6）；另 D3 已定为 20s/句
 - [x] ~~开工 P2-1~~ ✅ **已完成**（`lib/core/thinking-extractor` + 26 单测 + 真实语料回放）
-- [ ] ▶️ **开工 P2-3**：`git checkout -b feat/p2-fragment-splitter`，先读 §6.2 三条硬契约与 §7 的「P2-1 复用点」
+- [x] ~~做完 P2~~ ✅ **P2-1 ~ P2-6 代码全部完成**（单测 149 例全绿；真 DSH 上两通道订阅成功）
+- [ ] ⚠️ **P2 遗留：真实 GUI 回合的气泡验收**（路径见 §7 末尾）
+- [ ] ▶️ **拍 D10**（英文思考用什么音色）—— **不拍不要开 P3-1**，否则音色选型要返工
+- [ ] ▶️ 进 **P3 语音打通**：`git checkout -b feat/p3-tts`，先读 §6.2 三条硬契约
