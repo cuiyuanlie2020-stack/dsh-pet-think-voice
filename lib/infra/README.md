@@ -6,10 +6,31 @@
 
 | 落点 | 职责 | 排期 |
 |---|---|---|
-| `infra/tts/` | `TtsProvider` 抽象 + **唯一的 edge 实现**（零 npm 依赖，移植 `p0/edge-tts-zerodep.mjs`） | P3-1 |
-| `infra/sse/` | SSE 广播（复用既有同源通道，新增 `speak` 帧） | P2-6 |
+| `infra/tts/` | `TtsProvider` 抽象 + **唯一的 edge 实现**（零 npm 依赖） | ✅ **P3-1 已落地**：`edge.js`（谁写 = 协议）+ `index.js`（选谁） |
+| `infra/sse/` | SSE 广播（复用既有同源通道，新增 `speak` 帧） | ✅ P2-6（落在 `lib/index.js` 的 `ActivityHub`，未单独建目录） |
 | `infra/load-watcher` | 负载探针（CPU/GPU），供负载闸判定 | P3-5 |
-| `infra/fs` | 文件访问（设置持久化等） | P3-6 |
+| `infra/fs` | 文件访问（设置持久化等） | ✅ P3-0b（复用上游的 `lib/settings.js`） |
+
+## TTS 的两个文件怎么分工
+
+| 文件 | 回答的问题 |
+|---|---|
+| `tts/edge.js` | **怎么把字变成声音** —— Edge 的 WebSocket 协议、SSML、帧解析、`Sec-MS-GEC` 鉴权 |
+| `tts/index.js` | **用谁来变** —— provider 注册表（保留可插拔形状，随包只有 `edge`） |
+
+⚠️ **音色不是在这里选的**。`synthesize(text, {voice, pitch})` 只是执行；
+"这段文本该配哪个音色"是领域层的决策，见 `lib/core/reasoning-language.js#resolveVoice`。
+
+✅ **真实实测**（2026-10-11，本机真连 Edge 云）：
+
+| 音色 | 文本 | 结果 |
+|---|---|---|
+| `zh-CN-XiaoyiNeural` +30Hz | 中文 | 27,936 B / 1,060 ms |
+| `en-US-AvaMultilingualNeural` +50Hz | 英文 | 14,400 B / 1,527 ms |
+| `en-US-AvaMultilingualNeural` +50Hz | **中英混合** | 23,184 B / 1,545 ms |
+
+三者帧头均为 `fff364`（合法 MP3 帧同步字）—— 这也实测确认了 D10 备用音色
+**确实中英通吃**，混语兜底那条路成立。
 
 ## ⛔ 禁止
 
